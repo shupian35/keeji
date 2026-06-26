@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 import 'package:keeji/core/providers.dart';
 import 'package:keeji/models/video_record.dart';
 import 'package:keeji/core/constants.dart';
+import 'package:keeji/features/home/widgets/video_list.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ImportPage extends ConsumerStatefulWidget {
@@ -181,10 +182,34 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   }
   
   Future<void> _importFiles() async {
-    // 检查是否需要立即处理且配置是否完整
-    if (_startProcessing) {
+    bool shouldProcess = _startProcessing;
+    
+    // 如果选择立即处理，检查配置
+    if (shouldProcess) {
       final configValid = await _checkApiConfig();
-      if (!configValid) return;
+      if (!configValid) {
+        // 配置不完整，询问是否只导入不处理
+        final importOnly = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('是否只导入？'),
+            content: const Text('API 配置不完整，无法自动处理视频。\n是否只导入视频，稍后再处理？'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('取消'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('只导入'),
+              ),
+            ],
+          ),
+        );
+        
+        if (importOnly != true) return;
+        shouldProcess = false;
+      }
     }
     
     setState(() => _isImporting = true);
@@ -205,11 +230,17 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         videos.add(video);
       }
       
-      if (_startProcessing && videos.isNotEmpty) {
+      if (shouldProcess && videos.isNotEmpty) {
         _startProcessingVideos(videos);
       }
       
+      // 刷新首页视频列表
+      ref.invalidate(videoListFutureProvider);
+      
       if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('成功导入 ${videos.length} 个视频')),
+        );
         Navigator.pop(context);
       }
     } catch (e) {
@@ -227,37 +258,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     final asrKey = prefs.getString('asr_api_key') ?? '';
     final llmKey = prefs.getString('llm_api_key') ?? '';
     
-    final missing = <String>[];
-    if (asrKey.isEmpty) missing.add('ASR API Key');
-    if (llmKey.isEmpty) missing.add('LLM API Key');
-    
-    if (missing.isEmpty) return true;
-    
-    if (!mounted) return false;
-    
-    final goToSettings = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('配置不完整'),
-        content: Text('以下配置缺失：\n${missing.join('\n')}\n\n请先在设置页面配置 API。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('去设置'),
-          ),
-        ],
-      ),
-    );
-    
-    if (goToSettings == true && mounted) {
-      Navigator.pushNamed(context, '/settings');
-    }
-    
-    return false;
+    return asrKey.isNotEmpty && llmKey.isNotEmpty;
   }
   
   void _startProcessingVideos(List<VideoRecord> videos) {
