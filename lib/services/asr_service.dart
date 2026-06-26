@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:keeji/core/constants.dart';
 import 'package:keeji/core/exceptions.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -63,27 +62,35 @@ class ASRService {
     _initialized = true;
   }
   
-  Future<void> testConnection({
-    required String apiKey,
-    required String baseUrl,
-  }) async {
-    final testDio = Dio(BaseOptions(
-      baseUrl: baseUrl,
-      headers: {
-        'Authorization': 'Bearer $apiKey',
-      },
-    ));
+  Future<String> testConnection() async {
+    await _ensureInitialized();
+    
+    if (_apiKey.isEmpty) {
+      return '请先配置 ASR API Key';
+    }
     
     try {
-      final response = await testDio.get('/models');
-      if (response.statusCode != 200) {
-        throw ASRException('连接失败: ${response.statusCode}');
+      final response = await _dio!.get('/models');
+      if (response.statusCode == 200) {
+        return 'success';
       }
+      return '连接失败: HTTP ${response.statusCode}';
     } on DioException catch (e) {
       if (e.response?.statusCode == 401) {
-        throw const ASRException('API Key 无效');
+        return 'API Key 无效';
       }
-      throw ASRException('连接失败: ${e.message}');
+      if (e.response?.statusCode == 403) {
+        return 'API Key 权限不足';
+      }
+      if (e.type == DioExceptionType.connectionTimeout) {
+        return '连接超时，请检查网络';
+      }
+      if (e.type == DioExceptionType.connectionError) {
+        return '无法连接到服务器，请检查 API 地址';
+      }
+      return '连接失败: ${e.message}';
+    } catch (e) {
+      return '连接失败: $e';
     }
   }
   
@@ -122,94 +129,5 @@ class ASRService {
     } on DioException catch (e) {
       throw ASRException('转写请求失败: ${e.message}');
     }
-  }
-  
-  Future<List<TranscriptSegment>> transcribeWithTimestamps({
-    required String audioPath,
-    void Function(double progress)? onProgress,
-  }) async {
-    await _ensureInitialized();
-    
-    if (_apiKey.isEmpty) {
-      throw const ASRException('请先配置 ASR API Key');
-    }
-    
-    try {
-      final formData = FormData.fromMap({
-        'file': await MultipartFile.fromFile(audioPath),
-        'model': _model,
-        'language': 'zh',
-        'response_format': 'verbose_json',
-        'timestamp_granularities[]': 'segment',
-      });
-      
-      final response = await _dio!.post(
-        '/audio/transcriptions',
-        data: formData,
-        onSendProgress: (sent, total) {
-          if (total > 0) {
-            onProgress?.call(sent / total);
-          }
-        },
-      );
-      
-      if (response.statusCode == 200) {
-        debugPrint('ASR API 返回数据: ${response.data}');
-        debugPrint('数据类型: ${response.data.runtimeType}');
-        debugPrint('segments 字段: ${response.data['segments']}');
-        
-        final segments = <TranscriptSegment>[];
-        final segmentsData = response.data['segments'];
-        
-        if (segmentsData is List && segmentsData.isNotEmpty) {
-          for (final seg in segmentsData) {
-            segments.add(TranscriptSegment(
-              start: (seg['start'] as num).toDouble(),
-              end: (seg['end'] as num).toDouble(),
-              text: seg['text'] ?? '',
-            ));
-          }
-        } else {
-          // 如果没有 segments 字段，尝试从 text 字段创建单个 segment
-          final text = response.data['text'] ?? '';
-          if (text.isNotEmpty) {
-            segments.add(TranscriptSegment(start: 0, end: 0, text: text));
-          }
-        }
-        
-        debugPrint('解析到 ${segments.length} 个段落');
-        return segments;
-      } else {
-        throw ASRException('转写失败: ${response.statusCode}');
-      }
-    } on DioException catch (e) {
-      throw ASRException('转写请求失败: ${e.message}');
-    }
-  }
-}
-
-class TranscriptSegment {
-  final double start;
-  final double end;
-  final String text;
-  
-  const TranscriptSegment({
-    required this.start,
-    required this.end,
-    required this.text,
-  });
-  
-  Map<String, dynamic> toJson() => {
-    'start': start,
-    'end': end,
-    'text': text,
-  };
-  
-  factory TranscriptSegment.fromJson(Map<String, dynamic> json) {
-    return TranscriptSegment(
-      start: (json['start'] as num).toDouble(),
-      end: (json['end'] as num).toDouble(),
-      text: json['text'] ?? '',
-    );
   }
 }

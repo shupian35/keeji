@@ -65,28 +65,35 @@ class LLMService {
     _initialized = true;
   }
   
-  Future<void> testConnection({
-    required String apiKey,
-    required String baseUrl,
-  }) async {
-    final testDio = Dio(BaseOptions(
-      baseUrl: baseUrl,
-      headers: {
-        'Authorization': 'Bearer $apiKey',
-        'Content-Type': 'application/json',
-      },
-    ));
+  Future<String> testConnection() async {
+    await _ensureInitialized();
+    
+    if (_apiKey.isEmpty) {
+      return '请先配置 LLM API Key';
+    }
     
     try {
-      final response = await testDio.get('/models');
-      if (response.statusCode != 200) {
-        throw LLMException('连接失败: ${response.statusCode}');
+      final response = await _dio!.get('/models');
+      if (response.statusCode == 200) {
+        return 'success';
       }
+      return '连接失败: HTTP ${response.statusCode}';
     } on DioException catch (e) {
       if (e.response?.statusCode == 401) {
-        throw const LLMException('API Key 无效');
+        return 'API Key 无效';
       }
-      throw LLMException('连接失败: ${e.message}');
+      if (e.response?.statusCode == 403) {
+        return 'API Key 权限不足';
+      }
+      if (e.type == DioExceptionType.connectionTimeout) {
+        return '连接超时，请检查网络';
+      }
+      if (e.type == DioExceptionType.connectionError) {
+        return '无法连接到服务器，请检查 API 地址';
+      }
+      return '连接失败: ${e.message}';
+    } catch (e) {
+      return '连接失败: $e';
     }
   }
   
@@ -125,12 +132,25 @@ class LLMService {
       
       if (response.statusCode == 200) {
         final content = response.data['choices'][0]['message']['content'];
+        
+        // 检查是否返回了 HTML
+        if (content is String && (content.trimLeft().startsWith('<!DOCTYPE') || content.trimLeft().startsWith('<html'))) {
+          throw const LLMException('API 返回了 HTML 页面，请检查 API 地址是否正确');
+        }
+        
         return _parseResponse(content);
       } else {
         throw LLMException('生成笔记失败: ${response.statusCode}');
       }
+    } on LLMException {
+      rethrow;
     } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        throw const LLMException('API Key 无效');
+      }
       throw LLMException('生成笔记请求失败: ${e.message}');
+    } catch (e) {
+      throw LLMException('生成笔记失败: $e');
     }
   }
   
@@ -155,6 +175,11 @@ $transcript
   }
   
   GeneratedNote _parseResponse(String content) {
+    // 检查是否是 HTML
+    if (content.trimLeft().startsWith('<!DOCTYPE') || content.trimLeft().startsWith('<html')) {
+      throw const LLMException('API 返回了 HTML 页面，请检查 API 地址是否正确');
+    }
+    
     try {
       final json = jsonDecode(content);
       return GeneratedNote(

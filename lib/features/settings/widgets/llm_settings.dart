@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:keeji/core/constants.dart';
-import 'package:keeji/core/error_handler.dart';
 import 'package:keeji/core/providers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -137,27 +136,80 @@ class _LlmSettingsState extends ConsumerState<LlmSettings> {
     
     try {
       final llmService = ref.read(llmServiceProvider);
-      await llmService.testConnection(
+      await llmService.updateConfig(
         apiKey: _apiKeyController.text,
         baseUrl: _baseUrlController.text,
+        model: _modelController.text,
       );
       
+      final result = await llmService.testConnection();
+      
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('连接成功'),
-            backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-          ),
-        );
+        if (result == 'success') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('连接成功'),
+              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+            ),
+          );
+        } else {
+          _showErrorDialog(result);
+        }
       }
     } catch (e) {
       if (mounted) {
-        ErrorHandler.showError(context, e, title: '连接测试失败');
+        _showErrorDialog('连接失败: $e');
       }
     } finally {
       if (mounted) {
         setState(() => _isTesting = false);
       }
     }
+  }
+  
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: Icon(
+          Icons.error_outline,
+          color: Theme.of(ctx).colorScheme.error,
+        ),
+        title: const Text('连接测试失败'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              message,
+              style: TextStyle(
+                color: Theme.of(ctx).colorScheme.error,
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Divider(),
+            const SizedBox(height: 8),
+            Text(
+              '当前配置：',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
+            Text('API 地址: ${_baseUrlController.text}'),
+            Text('模型: ${_modelController.text}'),
+            const SizedBox(height: 12),
+            const Text('请检查：'),
+            const Text('• API Key 是否正确'),
+            const Text('• API 地址格式是否正确'),
+            const Text('• 网络连接是否正常'),
+          ],
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
   }
 }
