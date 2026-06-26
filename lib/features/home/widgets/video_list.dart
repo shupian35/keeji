@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:keeji/core/providers.dart';
+import 'package:keeji/core/constants.dart';
 import 'package:keeji/models/video_record.dart';
 
 final videoListFutureProvider = FutureProvider<List<VideoRecord>>((ref) async {
@@ -99,6 +101,10 @@ class VideoCard extends ConsumerWidget {
                 child: Text('重试'),
               ),
             const PopupMenuItem(
+              value: 'relocate',
+              child: Text('更新路径'),
+            ),
+            const PopupMenuItem(
               value: 'delete',
               child: Text('删除'),
             ),
@@ -173,6 +179,9 @@ class VideoCard extends ConsumerWidget {
       case 'retry':
         _retryProcessing(context, ref);
         break;
+      case 'relocate':
+        _relocateVideo(context, ref);
+        break;
       case 'delete':
         _deleteVideo(context, ref);
         break;
@@ -192,6 +201,39 @@ class VideoCard extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('重试失败: $e')),
+        );
+      }
+    }
+  }
+  
+  Future<void> _relocateVideo(BuildContext context, WidgetRef ref) async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: AppConstants.videoExtensions
+          .map((e) => e.replaceFirst('.', ''))
+          .toList(),
+    );
+    
+    if (result == null || result.files.isEmpty) return;
+    
+    final newPath = result.paths.first;
+    if (newPath == null) return;
+    
+    try {
+      final db = ref.read(databaseProvider);
+      final updatedVideo = video.copyWith(filePath: newPath);
+      await db.updateVideo(updatedVideo);
+      onRefresh();
+      
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('路径已更新')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('更新失败: $e')),
         );
       }
     }
