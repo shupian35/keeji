@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
@@ -55,28 +54,19 @@ class VideoProcessor {
       
       // 2. 语音转写
       onProgress?.call(0.3, '语音转写');
-      List<TranscriptSegment> segments;
-      
-      try {
-        segments = await _asr.transcribeWithTimestamps(
-          audioPath: audioPath,
-          onProgress: (progress) {
-            _db.updateVideo(video.copyWith(
-              progress: 0.3 + progress * 0.4,
-            ));
-          },
-        );
-      } catch (e) {
-        // 如果带时间戳的转写失败，尝试普通转写
-        final text = await _asr.transcribeFile(audioPath: audioPath);
-        segments = [TranscriptSegment(start: 0, end: 0, text: text)];
-      }
+      final transcriptText = await _asr.transcribeFile(
+        audioPath: audioPath,
+        onProgress: (progress) {
+          _db.updateVideo(video.copyWith(
+            progress: 0.3 + progress * 0.4,
+          ));
+        },
+      );
       
       await _db.updateVideo(video.copyWith(progress: 0.7));
       
       // 3. 生成笔记
       onProgress?.call(0.7, '生成笔记');
-      final transcriptText = segments.map((s) => s.text).join('\n');
       final note = await _llm.generateNote(
         transcript: transcriptText,
         videoTitle: video.filename,
@@ -92,7 +82,7 @@ class VideoProcessor {
         videoId: video.id,
         title: note.title,
         contentMd: note.content,
-        transcriptJson: jsonEncode(segments.map((s) => s.toJson()).toList()),
+        transcriptJson: transcriptText,
         createdAt: DateTime.now(),
       ));
       

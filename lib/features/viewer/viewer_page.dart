@@ -143,7 +143,7 @@ class _ViewerPageState extends ConsumerState<ViewerPage> {
               width: 300,
               constraints: const BoxConstraints(minHeight: 200),
               child: TranscriptPanel(
-                transcriptJson: note?.transcriptJson,
+                transcriptText: note?.transcriptJson,
               ),
             ),
           ],
