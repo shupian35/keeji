@@ -10,12 +10,47 @@ class TranscriptPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (transcriptJson == null || transcriptJson!.isEmpty) {
-      return const Center(
-        child: Text('暂无转写内容'),
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.transcribe,
+              size: 48,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(height: 16),
+            const Text('暂无转写内容'),
+            const SizedBox(height: 8),
+            Text(
+              '视频处理完成后会显示转写原文',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
       );
     }
     
     final segments = _parseTranscript(transcriptJson!);
+    
+    if (segments.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.transcribe,
+              size: 48,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(height: 16),
+            const Text('转写内容解析失败'),
+          ],
+        ),
+      );
+    }
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -29,6 +64,13 @@ class TranscriptPanel extends StatelessWidget {
               Text(
                 '转写原文',
                 style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const Spacer(),
+              Text(
+                '${segments.length} 段',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),
@@ -52,7 +94,8 @@ class TranscriptPanel extends StatelessWidget {
     try {
       final List<dynamic> data = jsonDecode(json);
       return data.map((item) => TranscriptSegment.fromJson(item)).toList();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('解析转写内容失败: $e');
       return [];
     }
   }

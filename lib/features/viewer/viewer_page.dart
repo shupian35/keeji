@@ -139,8 +139,9 @@ class _ViewerPageState extends ConsumerState<ViewerPage> {
           ),
           if (_showTranscript) ...[
             const VerticalDivider(width: 1),
-            SizedBox(
+            Container(
               width: 300,
+              constraints: const BoxConstraints(minHeight: 200),
               child: TranscriptPanel(
                 transcriptJson: note?.transcriptJson,
               ),
