@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:keeji/core/providers.dart';
 import 'package:keeji/core/constants.dart';
+import 'package:keeji/core/error_handler.dart';
 import 'package:keeji/models/video_record.dart';
 
 final videoListProvider = StateNotifierProvider<VideoListNotifier, AsyncValue<List<VideoRecord>>>((ref) {
@@ -233,8 +234,11 @@ class VideoCard extends ConsumerWidget {
       onRefresh();
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('重试失败: $e')),
+        ErrorHandler.showErrorWithRetry(
+          context,
+          e,
+          title: '重试失败',
+          onRetry: () => _retryProcessing(context, ref),
         );
       }
     }
@@ -266,9 +270,7 @@ class VideoCard extends ConsumerWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('更新失败: $e')),
-        );
+        ErrorHandler.showError(context, e, title: '更新失败');
       }
     }
   }

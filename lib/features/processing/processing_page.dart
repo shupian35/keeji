@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:keeji/core/providers.dart';
+import 'package:keeji/core/error_handler.dart';
 import 'package:keeji/models/video_record.dart';
 
 final videoStreamProvider = StreamProvider.family<VideoRecord?, String>((ref, videoId) {
@@ -196,8 +197,19 @@ class ProcessingPage extends ConsumerWidget {
   }
   
   Future<void> _retry(BuildContext context, WidgetRef ref, VideoRecord video) async {
-    final processor = ref.read(videoProcessorProvider);
-    await processor.retryProcessing(video: video);
+    try {
+      final processor = ref.read(videoProcessorProvider);
+      await processor.retryProcessing(video: video);
+    } catch (e) {
+      if (context.mounted) {
+        ErrorHandler.showErrorWithRetry(
+          context,
+          e,
+          title: '重试失败',
+          onRetry: () => _retry(context, ref, video),
+        );
+      }
+    }
   }
 }
 

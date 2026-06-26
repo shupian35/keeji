@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:keeji/core/providers.dart';
+import 'package:keeji/core/error_handler.dart';
 import 'package:keeji/models/video_record.dart';
 import 'package:keeji/models/note.dart';
 import 'package:keeji/features/viewer/widgets/video_player_widget.dart';
@@ -182,9 +183,7 @@ class _ViewerPageState extends ConsumerState<ViewerPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('导出失败: $e')),
-        );
+        ErrorHandler.showError(context, e, title: '导出失败');
       }
     }
   }
@@ -201,9 +200,7 @@ class _ViewerPageState extends ConsumerState<ViewerPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('导出失败: $e')),
-        );
+        ErrorHandler.showError(context, e, title: '导出失败');
       }
     }
   }
@@ -225,8 +222,11 @@ class _ViewerPageState extends ConsumerState<ViewerPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('重新生成失败: $e')),
+        ErrorHandler.showErrorWithRetry(
+          context,
+          e,
+          title: '重新生成失败',
+          onRetry: () => _regenerate(video),
         );
       }
     } finally {

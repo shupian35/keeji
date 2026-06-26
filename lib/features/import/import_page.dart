@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:uuid/uuid.dart';
 import 'package:keeji/core/providers.dart';
+import 'package:keeji/core/error_handler.dart';
 import 'package:keeji/models/video_record.dart';
 import 'package:keeji/core/constants.dart';
 import 'package:keeji/features/home/widgets/video_list.dart';
@@ -246,9 +247,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     } catch (e) {
       setState(() => _isImporting = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('导入失败: $e')),
-        );
+        ErrorHandler.showError(context, e, title: '导入失败');
       }
     }
   }

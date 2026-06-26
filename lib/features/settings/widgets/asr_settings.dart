@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:keeji/core/constants.dart';
+import 'package:keeji/core/error_handler.dart';
 import 'package:keeji/core/providers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -151,12 +152,7 @@ class _AsrSettingsState extends ConsumerState<AsrSettings> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('连接失败: $e'),
-            backgroundColor: Theme.of(context).colorScheme.errorContainer,
-          ),
-        );
+        ErrorHandler.showError(context, e, title: '连接测试失败');
       }
     } finally {
       if (mounted) {
