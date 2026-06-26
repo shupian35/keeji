@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:keeji/models/note.dart';
 
@@ -9,43 +10,76 @@ class ExportService {
   factory ExportService() => _instance;
   ExportService._();
   
-  Future<File> exportNoteAsMarkdown(Note note) async {
-    final dir = await getApplicationDocumentsDirectory();
+  Future<String?> exportNoteAsMarkdown(Note note) async {
     final fileName = '${_sanitizeFileName(note.title)}.md';
-    final file = File(path.join(dir.path, 'exports', fileName));
     
-    await file.parent.create(recursive: true);
-    await file.writeAsString(note.contentMd);
-    
-    return file;
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      // 桌面端：打开文件保存对话框
+      final outputPath = await FilePicker.platform.saveFile(
+        dialogTitle: '保存笔记',
+        fileName: fileName,
+        type: FileType.custom,
+        allowedExtensions: ['md'],
+      );
+      
+      if (outputPath == null) return null;
+      
+      await File(outputPath).writeAsString(note.contentMd);
+      return outputPath;
+    } else {
+      // 移动端：保存到应用目录并分享
+      final dir = await getApplicationDocumentsDirectory();
+      final file = File(path.join(dir.path, 'exports', fileName));
+      
+      await file.parent.create(recursive: true);
+      await file.writeAsString(note.contentMd);
+      
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        subject: fileName,
+      );
+      
+      return file.path;
+    }
   }
   
-  Future<File> exportTranscriptAsText(Note note) async {
-    final dir = await getApplicationDocumentsDirectory();
+  Future<String?> exportTranscriptAsText(Note note) async {
     final fileName = '${_sanitizeFileName(note.title)}_转写.txt';
-    final file = File(path.join(dir.path, 'exports', fileName));
     
-    await file.parent.create(recursive: true);
-    
-    // 从 JSON 中提取纯文本
+    // 获取转写文本
     String text = note.contentMd;
-    if (note.transcriptJson != null) {
-      try {
-        // 尝试解析转写 JSON 并提取文本
-        text = note.transcriptJson!;
-      } catch (_) {}
+    if (note.transcriptJson != null && note.transcriptJson!.isNotEmpty) {
+      text = note.transcriptJson!;
     }
     
-    await file.writeAsString(text);
-    
-    return file;
-  }
-  
-  Future<void> shareFile(File file) async {
-    await Share.shareXFiles(
-      [XFile(file.path)],
-      subject: path.basename(file.path),
-    );
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      // 桌面端：打开文件保存对话框
+      final outputPath = await FilePicker.platform.saveFile(
+        dialogTitle: '保存转写原文',
+        fileName: fileName,
+        type: FileType.custom,
+        allowedExtensions: ['txt'],
+      );
+      
+      if (outputPath == null) return null;
+      
+      await File(outputPath).writeAsString(text);
+      return outputPath;
+    } else {
+      // 移动端：保存到应用目录并分享
+      final dir = await getApplicationDocumentsDirectory();
+      final file = File(path.join(dir.path, 'exports', fileName));
+      
+      await file.parent.create(recursive: true);
+      await file.writeAsString(text);
+      
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        subject: fileName,
+      );
+      
+      return file.path;
+    }
   }
   
   String _sanitizeFileName(String name) {

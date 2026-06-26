@@ -173,12 +173,11 @@ class _ViewerPageState extends ConsumerState<ViewerPage> {
   Future<void> _exportMarkdown(Note note) async {
     try {
       final exportService = ref.read(exportServiceProvider);
-      final file = await exportService.exportNoteAsMarkdown(note);
-      await exportService.shareFile(file);
+      final outputPath = await exportService.exportNoteAsMarkdown(note);
       
-      if (mounted) {
+      if (outputPath != null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('笔记已导出')),
+          SnackBar(content: Text('笔记已保存到: $outputPath')),
         );
       }
     } catch (e) {
@@ -193,12 +192,11 @@ class _ViewerPageState extends ConsumerState<ViewerPage> {
   Future<void> _exportTranscript(Note note) async {
     try {
       final exportService = ref.read(exportServiceProvider);
-      final file = await exportService.exportTranscriptAsText(note);
-      await exportService.shareFile(file);
+      final outputPath = await exportService.exportTranscriptAsText(note);
       
-      if (mounted) {
+      if (outputPath != null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('转写原文已导出')),
+          SnackBar(content: Text('转写原文已保存到: $outputPath')),
         );
       }
     } catch (e) {
