@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:keeji/core/constants.dart';
 import 'package:keeji/core/exceptions.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -153,14 +154,30 @@ class ASRService {
       );
       
       if (response.statusCode == 200) {
+        debugPrint('ASR API 返回数据: ${response.data}');
+        debugPrint('数据类型: ${response.data.runtimeType}');
+        debugPrint('segments 字段: ${response.data['segments']}');
+        
         final segments = <TranscriptSegment>[];
-        for (final seg in response.data['segments'] ?? []) {
-          segments.add(TranscriptSegment(
-            start: (seg['start'] as num).toDouble(),
-            end: (seg['end'] as num).toDouble(),
-            text: seg['text'] ?? '',
-          ));
+        final segmentsData = response.data['segments'];
+        
+        if (segmentsData is List && segmentsData.isNotEmpty) {
+          for (final seg in segmentsData) {
+            segments.add(TranscriptSegment(
+              start: (seg['start'] as num).toDouble(),
+              end: (seg['end'] as num).toDouble(),
+              text: seg['text'] ?? '',
+            ));
+          }
+        } else {
+          // 如果没有 segments 字段，尝试从 text 字段创建单个 segment
+          final text = response.data['text'] ?? '';
+          if (text.isNotEmpty) {
+            segments.add(TranscriptSegment(start: 0, end: 0, text: text));
+          }
         }
+        
+        debugPrint('解析到 ${segments.length} 个段落');
         return segments;
       } else {
         throw ASRException('转写失败: ${response.statusCode}');
