@@ -110,6 +110,7 @@ class _ViewerPageState extends ConsumerState<ViewerPage> {
                 ? Markdown(
                     data: note.contentMd,
                     padding: const EdgeInsets.all(16),
+                    selectable: true,
                   )
                 : Center(
                     child: Column(
