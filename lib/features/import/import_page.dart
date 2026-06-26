@@ -187,20 +187,20 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     // 如果选择立即处理，检查配置
     if (shouldProcess) {
       final configValid = await _checkApiConfig();
-      if (!configValid) {
+      if (!configValid && mounted) {
         // 配置不完整，询问是否只导入不处理
         final importOnly = await showDialog<bool>(
           context: context,
-          builder: (context) => AlertDialog(
+          builder: (ctx) => AlertDialog(
             title: const Text('是否只导入？'),
             content: const Text('API 配置不完整，无法自动处理视频。\n是否只导入视频，稍后再处理？'),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(context, false),
+                onPressed: () => Navigator.pop(ctx, false),
                 child: const Text('取消'),
               ),
               FilledButton(
-                onPressed: () => Navigator.pop(context, true),
+                onPressed: () => Navigator.pop(ctx, true),
                 child: const Text('只导入'),
               ),
             ],
