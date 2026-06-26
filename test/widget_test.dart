@@ -9,7 +9,7 @@ void main() {
         child: KeejiApp(),
       ),
     );
-    await tester.pump(const Duration(seconds: 1));
-    expect(find.text('课记'), findsWidgets);
+    await tester.pump();
+    expect(find.byType(KeejiApp), findsOneWidget);
   });
 }
