@@ -107,10 +107,12 @@ class _ViewerPageState extends ConsumerState<ViewerPage> {
           const VerticalDivider(width: 1),
           Expanded(
             child: note != null
-                ? Markdown(
-                    data: note.contentMd,
-                    padding: const EdgeInsets.all(16),
-                    selectable: true,
+                ? SelectionArea(
+                    child: Markdown(
+                      data: note.contentMd,
+                      padding: const EdgeInsets.all(16),
+                      selectable: true,
+                    ),
                   )
                 : Center(
                     child: Column(
