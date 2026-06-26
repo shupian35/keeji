@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:keeji/core/providers.dart';
@@ -74,6 +75,12 @@ class _ViewerPageState extends ConsumerState<ViewerPage> {
       appBar: AppBar(
         title: Text(note?.title ?? video.filename),
         actions: [
+          if (note != null)
+            IconButton(
+              icon: const Icon(Icons.copy),
+              onPressed: () => _copyNote(note),
+              tooltip: '复制笔记',
+            ),
           IconButton(
             icon: Icon(_showTranscript ? Icons.description : Icons.description_outlined),
             onPressed: () => setState(() => _showTranscript = !_showTranscript),
@@ -165,6 +172,17 @@ class _ViewerPageState extends ConsumerState<ViewerPage> {
       case 'regenerate':
         await _regenerate(video);
         break;
+    }
+  }
+  
+  void _copyNote(Note note) {
+    // 复制笔记内容到剪贴板
+    Clipboard.setData(ClipboardData(text: note.contentMd));
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('笔记已复制到剪贴板')),
+      );
     }
   }
   
