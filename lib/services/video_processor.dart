@@ -1,8 +1,8 @@
+import 'dart:async';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:keeji/core/ffmpeg_service.dart';
-import 'package:keeji/core/exceptions.dart';
 import 'package:keeji/database/app_database.dart';
 import 'package:keeji/models/video_record.dart';
 import 'package:keeji/models/note.dart';
@@ -19,17 +19,53 @@ class VideoProcessor {
   final _llm = LLMService();
   final _db = AppDatabase();
   
+  final _queue = <_QueueItem>[];
   bool _isProcessing = false;
   
   Future<void> processVideo({
     required VideoRecord video,
     void Function(double progress, String stage)? onProgress,
   }) async {
-    if (_isProcessing) {
-      throw const KeejiException('已有视频正在处理中');
+    // 将视频加入队列
+    final completer = Completer<void>();
+    _queue.add(_QueueItem(
+      video: video,
+      onProgress: onProgress,
+      completer: completer,
+    ));
+    
+    // 如果没有正在处理的任务，开始处理
+    if (!_isProcessing) {
+      _processQueue();
+    }
+    
+    // 等待当前视频处理完成
+    return completer.future;
+  }
+  
+  Future<void> _processQueue() async {
+    if (_queue.isEmpty) {
+      _isProcessing = false;
+      return;
     }
     
     _isProcessing = true;
+    final item = _queue.removeAt(0);
+    
+    try {
+      await _processVideoItem(item);
+      item.completer.complete();
+    } catch (e) {
+      item.completer.completeError(e);
+    }
+    
+    // 继续处理队列中的下一个
+    _processQueue();
+  }
+  
+  Future<void> _processVideoItem(_QueueItem item) async {
+    final video = item.video;
+    final onProgress = item.onProgress;
     final tempFiles = <String>[];
     
     try {
@@ -103,7 +139,6 @@ class VideoProcessor {
     } finally {
       // 清理临时文件
       await _ffmpeg.cleanupTempFiles(tempFiles);
-      _isProcessing = false;
     }
   }
   
@@ -123,4 +158,19 @@ class VideoProcessor {
       onProgress: onProgress,
     );
   }
+  
+  int get queueLength => _queue.length;
+  bool get isProcessing => _isProcessing;
+}
+
+class _QueueItem {
+  final VideoRecord video;
+  final void Function(double progress, String stage)? onProgress;
+  final Completer<void> completer;
+  
+  _QueueItem({
+    required this.video,
+    this.onProgress,
+    required this.completer,
+  });
 }
