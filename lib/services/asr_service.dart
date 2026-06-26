@@ -8,12 +8,15 @@ class ASRService {
   factory ASRService() => _instance;
   ASRService._();
   
-  late Dio _dio;
+  Dio? _dio;
   String _apiKey = '';
   String _baseUrl = AppConstants.defaultAsrBaseUrl;
   String _model = AppConstants.defaultAsrModel;
+  bool _initialized = false;
   
-  Future<void> init() async {
+  Future<void> _ensureInitialized() async {
+    if (_initialized) return;
+    
     final prefs = await SharedPreferences.getInstance();
     _apiKey = prefs.getString('asr_api_key') ?? '';
     _baseUrl = prefs.getString('asr_base_url') ?? AppConstants.defaultAsrBaseUrl;
@@ -25,6 +28,8 @@ class ASRService {
         'Authorization': 'Bearer $_apiKey',
       },
     ));
+    
+    _initialized = true;
   }
   
   Future<void> updateConfig({
@@ -53,6 +58,8 @@ class ASRService {
         'Authorization': 'Bearer $_apiKey',
       },
     ));
+    
+    _initialized = true;
   }
   
   Future<void> testConnection({
@@ -83,6 +90,8 @@ class ASRService {
     required String audioPath,
     void Function(double progress)? onProgress,
   }) async {
+    await _ensureInitialized();
+    
     if (_apiKey.isEmpty) {
       throw const ASRException('请先配置 ASR API Key');
     }
@@ -94,7 +103,7 @@ class ASRService {
         'language': 'zh',
       });
       
-      final response = await _dio.post(
+      final response = await _dio!.post(
         '/audio/transcriptions',
         data: formData,
         onSendProgress: (sent, total) {
@@ -118,6 +127,8 @@ class ASRService {
     required String audioPath,
     void Function(double progress)? onProgress,
   }) async {
+    await _ensureInitialized();
+    
     if (_apiKey.isEmpty) {
       throw const ASRException('请先配置 ASR API Key');
     }
@@ -131,7 +142,7 @@ class ASRService {
         'timestamp_granularities[]': 'segment',
       });
       
-      final response = await _dio.post(
+      final response = await _dio!.post(
         '/audio/transcriptions',
         data: formData,
         onSendProgress: (sent, total) {

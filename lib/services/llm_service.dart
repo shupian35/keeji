@@ -9,12 +9,15 @@ class LLMService {
   factory LLMService() => _instance;
   LLMService._();
   
-  late Dio _dio;
+  Dio? _dio;
   String _apiKey = '';
   String _baseUrl = AppConstants.defaultLlmBaseUrl;
   String _model = AppConstants.defaultLlmModel;
+  bool _initialized = false;
   
-  Future<void> init() async {
+  Future<void> _ensureInitialized() async {
+    if (_initialized) return;
+    
     final prefs = await SharedPreferences.getInstance();
     _apiKey = prefs.getString('llm_api_key') ?? '';
     _baseUrl = prefs.getString('llm_base_url') ?? AppConstants.defaultLlmBaseUrl;
@@ -27,6 +30,8 @@ class LLMService {
         'Content-Type': 'application/json',
       },
     ));
+    
+    _initialized = true;
   }
   
   Future<void> updateConfig({
@@ -56,6 +61,8 @@ class LLMService {
         'Content-Type': 'application/json',
       },
     ));
+    
+    _initialized = true;
   }
   
   Future<void> testConnection({
@@ -88,6 +95,8 @@ class LLMService {
     String? videoTitle,
     void Function(double progress)? onProgress,
   }) async {
+    await _ensureInitialized();
+    
     if (_apiKey.isEmpty) {
       throw const LLMException('请先配置 LLM API Key');
     }
@@ -95,7 +104,7 @@ class LLMService {
     final prompt = _buildPrompt(transcript, videoTitle);
     
     try {
-      final response = await _dio.post(
+      final response = await _dio!.post(
         '/chat/completions',
         data: {
           'model': _model,
@@ -147,14 +156,12 @@ $transcript
   
   GeneratedNote _parseResponse(String content) {
     try {
-      // 尝试直接解析 JSON
       final json = jsonDecode(content);
       return GeneratedNote(
         title: json['title'] ?? '未命名笔记',
         content: json['content'] ?? content,
       );
     } catch (_) {
-      // 尝试从代码块中提取 JSON
       final codeBlockRegex = RegExp(r'```(?:json)?\s*([\s\S]*?)```');
       final match = codeBlockRegex.firstMatch(content);
       if (match != null) {
@@ -167,7 +174,6 @@ $transcript
         } catch (_) {}
       }
       
-      // 尝试从花括号中提取 JSON
       final braceRegex = RegExp(r'\{[\s\S]*\}');
       final braceMatch = braceRegex.firstMatch(content);
       if (braceMatch != null) {
@@ -180,7 +186,6 @@ $transcript
         } catch (_) {}
       }
       
-      // 如果都失败，返回原文作为内容
       return GeneratedNote(
         title: '未命名笔记',
         content: content,
