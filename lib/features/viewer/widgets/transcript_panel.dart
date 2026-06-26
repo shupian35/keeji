@@ -133,20 +133,29 @@ class TranscriptPanel extends StatelessWidget {
   
   List<TranscriptSegment> _parseTranscript(String json) {
     try {
+      debugPrint('转写内容原始数据: $json');
       final dynamic data = jsonDecode(json);
+      debugPrint('解析后的数据类型: ${data.runtimeType}');
       
       // 如果是数组
       if (data is List) {
+        debugPrint('数据是数组，长度: ${data.length}');
+        if (data.isNotEmpty) {
+          debugPrint('第一个元素: ${data[0]}');
+          debugPrint('第一个元素类型: ${data[0].runtimeType}');
+        }
         return data.map((item) {
           if (item is Map<String, dynamic>) {
             return TranscriptSegment.fromJson(item);
           }
+          debugPrint('元素不是 Map: $item');
           return null;
         }).whereType<TranscriptSegment>().toList();
       }
       
       // 如果是对象，尝试提取 segments 字段
       if (data is Map<String, dynamic>) {
+        debugPrint('数据是对象，键: ${data.keys.toList()}');
         if (data.containsKey('segments')) {
           final segments = data['segments'];
           if (segments is List) {
