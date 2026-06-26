@@ -19,8 +19,8 @@ Run `flutter analyze` after every change — it's the project's only static chec
 
 - **Entry**: `lib/main.dart` → `ProviderScope` → `KeejiApp` (ConsumerWidget)
 - **State**: Riverpod providers in `lib/core/providers.dart` — all services are singletons via `Provider`
-- **Routing**: go_router `ShellRoute` wraps home/settings with `AdaptiveScaffold` (NavigationRail sidebar); `/import` is a standalone route
-- **Database**: sqflite (not drift) — manual SQL in `AppDatabase` singleton, no DAOs, no ORM
+- **Routing**: go_router `ShellRoute` wraps home/settings with `AdaptiveScaffold` (NavigationRail sidebar); `/import`, `/viewer/:videoId`, `/processing/:videoId` are standalone routes
+- **Database**: sqflite + sqflite_common_ffi (desktop) — manual SQL in `AppDatabase` singleton, no DAOs, no ORM
 - **Models**: `@JsonSerializable()` with generated `.g.dart` files
 - **Services**: singletons (`factory Foo() => _instance`) — ASR, LLM, FFmpeg, VideoProcessor, ExportService
 - **Processing pipeline**: `VideoProcessor.processVideo()` orchestrates extract→transcribe→generate→save sequentially
@@ -33,6 +33,7 @@ Run `flutter analyze` after every change — it's the project's only static chec
 4. **Video status is an enum index** — `VideoStatus` values are stored as integers (0=pending, 1=processing, 2=done, 3=failed) in SQLite. Don't reorder the enum.
 5. **Models use `copyWith` manually** — no freezed, so model changes require updating both the class and its `copyWith` method by hand.
 6. **Video player is a placeholder** — `VideoPlayerWidget` is a static UI mock, not wired to actual playback.
+7. **Desktop requires sqflite_common_ffi** — `main.dart` initializes `databaseFactory = databaseFactoryFfi` for Windows/macOS/Linux. Don't remove this initialization.
 
 ## Code generation
 
