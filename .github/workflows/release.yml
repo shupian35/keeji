@@ -27,23 +27,23 @@ jobs:
           name: windows
           path: keji_flutter-windows-x64.zip
 
-  build-macos-x64:
-    runs-on: macos-13
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.41.2'
-          cache: true
-      - run: flutter pub get
-      - run: dart run build_runner build --delete-conflicting-outputs
-      - run: flutter build macos --release
-      - run: |
-          hdiutil create -volname "keeji" -srcfolder build/macos/Build/Products/Release/keeji.app -ov -format UDZO keji_flutter-macos-x64.dmg
-      - uses: actions/upload-artifact@v4
-        with:
-          name: macos-x64
-          path: keji_flutter-macos-x64.dmg
+  # build-macos-x64:
+  #   runs-on: macos-13
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: subosito/flutter-action@v2
+  #       with:
+  #         flutter-version: '3.41.2'
+  #         cache: true
+  #     - run: flutter pub get
+  #     - run: dart run build_runner build --delete-conflicting-outputs
+  #     - run: flutter build macos --release
+  #     - run: |
+  #         hdiutil create -volname "keeji" -srcfolder build/macos/Build/Products/Release/keeji.app -ov -format UDZO keji_flutter-macos-x64.dmg
+  #     - uses: actions/upload-artifact@v4
+  #       with:
+  #         name: macos-x64
+  #         path: keji_flutter-macos-x64.dmg
 
   build-macos-arm64:
     runs-on: macos-latest
@@ -157,7 +157,7 @@ jobs:
           path: keji_flutter-ios-unsigned.ipa
 
   release:
-    needs: [build-windows, build-macos-x64, build-macos-arm64, build-linux, build-android, build-ios]
+    needs: [build-windows, build-macos-arm64, build-linux, build-android, build-ios]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -168,7 +168,6 @@ jobs:
         with:
           files: |
             artifacts/windows/keji_flutter-windows-x64.zip
-            artifacts/macos-x64/keji_flutter-macos-x64.dmg
             artifacts/macos-arm64/keji_flutter-macos-arm64.dmg
             artifacts/linux/keji_flutter-linux-x64.AppImage
             artifacts/android/app-release.apk
