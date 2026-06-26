@@ -36,6 +36,12 @@ class TranscriptPanel extends StatelessWidget {
     final segments = _parseTranscript(transcriptJson!);
     
     if (segments.isEmpty) {
+      // 尝试作为纯文本显示
+      final plainText = _tryParseAsPlainText(transcriptJson!);
+      if (plainText != null) {
+        return _buildPlainTextPanel(context, plainText);
+      }
+      
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -47,6 +53,13 @@ class TranscriptPanel extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             const Text('转写内容解析失败'),
+            const SizedBox(height: 8),
+            Text(
+              '内容格式: ${transcriptJson!.substring(0, transcriptJson!.length.clamp(0, 50))}...',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
           ],
         ),
       );
@@ -90,13 +103,82 @@ class TranscriptPanel extends StatelessWidget {
     );
   }
   
+  Widget _buildPlainTextPanel(BuildContext context, String text) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              const Icon(Icons.transcribe, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                '转写原文',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ],
+          ),
+        ),
+        const Divider(height: 1),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: SelectableText(text),
+          ),
+        ),
+      ],
+    );
+  }
+  
   List<TranscriptSegment> _parseTranscript(String json) {
     try {
-      final List<dynamic> data = jsonDecode(json);
-      return data.map((item) => TranscriptSegment.fromJson(item)).toList();
+      final dynamic data = jsonDecode(json);
+      
+      // 如果是数组
+      if (data is List) {
+        return data.map((item) {
+          if (item is Map<String, dynamic>) {
+            return TranscriptSegment.fromJson(item);
+          }
+          return null;
+        }).whereType<TranscriptSegment>().toList();
+      }
+      
+      // 如果是对象，尝试提取 segments 字段
+      if (data is Map<String, dynamic>) {
+        if (data.containsKey('segments')) {
+          final segments = data['segments'];
+          if (segments is List) {
+            return segments.map((item) {
+              if (item is Map<String, dynamic>) {
+                return TranscriptSegment.fromJson(item);
+              }
+              return null;
+            }).whereType<TranscriptSegment>().toList();
+          }
+        }
+      }
+      
+      return [];
     } catch (e) {
       debugPrint('解析转写内容失败: $e');
       return [];
+    }
+  }
+  
+  String? _tryParseAsPlainText(String json) {
+    try {
+      final dynamic data = jsonDecode(json);
+      if (data is List && data.length == 1) {
+        final item = data[0];
+        if (item is Map<String, dynamic> && item.containsKey('text')) {
+          return item['text'] as String;
+        }
+      }
+      return null;
+    } catch (_) {
+      return null;
     }
   }
 }
