@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:keeji/core/theme_provider.dart';
 import 'package:keeji/features/settings/widgets/asr_settings.dart';
 import 'package:keeji/features/settings/widgets/llm_settings.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -16,6 +17,13 @@ class SettingsPage extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          _buildSection(
+            context,
+            title: '外观',
+            icon: Icons.palette,
+            child: const _ThemeSettings(),
+          ),
+          const SizedBox(height: 16),
           _buildSection(
             context,
             title: '语音转写 (ASR)',
@@ -68,6 +76,70 @@ class SettingsPage extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ThemeSettings extends ConsumerWidget {
+  const _ThemeSettings();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeModeProvider);
+    
+    return Column(
+      children: [
+        _buildThemeOption(
+          context,
+          ref,
+          title: '跟随系统',
+          icon: Icons.brightness_auto,
+          mode: ThemeMode.system,
+          isSelected: themeMode == ThemeMode.system,
+        ),
+        _buildThemeOption(
+          context,
+          ref,
+          title: '浅色模式',
+          icon: Icons.light_mode,
+          mode: ThemeMode.light,
+          isSelected: themeMode == ThemeMode.light,
+        ),
+        _buildThemeOption(
+          context,
+          ref,
+          title: '深色模式',
+          icon: Icons.dark_mode,
+          mode: ThemeMode.dark,
+          isSelected: themeMode == ThemeMode.dark,
+        ),
+      ],
+    );
+  }
+  
+  Widget _buildThemeOption(
+    BuildContext context,
+    WidgetRef ref, {
+    required String title,
+    required IconData icon,
+    required ThemeMode mode,
+    required bool isSelected,
+  }) {
+    return ListTile(
+      leading: Icon(icon),
+      title: Text(title),
+      trailing: isSelected
+          ? Icon(
+              Icons.check_circle,
+              color: Theme.of(context).colorScheme.primary,
+            )
+          : Icon(
+              Icons.circle_outlined,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+      onTap: () {
+        ref.read(themeModeProvider.notifier).setThemeMode(mode);
+      },
     );
   }
 }
