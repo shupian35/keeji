@@ -55,6 +55,30 @@ class ASRService {
     ));
   }
   
+  Future<void> testConnection({
+    required String apiKey,
+    required String baseUrl,
+  }) async {
+    final testDio = Dio(BaseOptions(
+      baseUrl: baseUrl,
+      headers: {
+        'Authorization': 'Bearer $apiKey',
+      },
+    ));
+    
+    try {
+      final response = await testDio.get('/models');
+      if (response.statusCode != 200) {
+        throw ASRException('连接失败: ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        throw const ASRException('API Key 无效');
+      }
+      throw ASRException('连接失败: ${e.message}');
+    }
+  }
+  
   Future<String> transcribeFile({
     required String audioPath,
     void Function(double progress)? onProgress,

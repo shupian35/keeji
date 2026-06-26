@@ -58,6 +58,31 @@ class LLMService {
     ));
   }
   
+  Future<void> testConnection({
+    required String apiKey,
+    required String baseUrl,
+  }) async {
+    final testDio = Dio(BaseOptions(
+      baseUrl: baseUrl,
+      headers: {
+        'Authorization': 'Bearer $apiKey',
+        'Content-Type': 'application/json',
+      },
+    ));
+    
+    try {
+      final response = await testDio.get('/models');
+      if (response.statusCode != 200) {
+        throw LLMException('连接失败: ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        throw const LLMException('API Key 无效');
+      }
+      throw LLMException('连接失败: ${e.message}');
+    }
+  }
+  
   Future<GeneratedNote> generateNote({
     required String transcript,
     String? videoTitle,

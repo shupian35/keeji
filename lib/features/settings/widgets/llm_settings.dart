@@ -16,6 +16,7 @@ class _LlmSettingsState extends ConsumerState<LlmSettings> {
   late TextEditingController _baseUrlController;
   late TextEditingController _modelController;
   bool _isLoading = true;
+  bool _isTesting = false;
   
   @override
   void initState() {
@@ -80,12 +81,29 @@ class _LlmSettingsState extends ConsumerState<LlmSettings> {
           ),
         ),
         const SizedBox(height: 12),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: _saveSettings,
-            child: const Text('保存 LLM 设置'),
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton(
+                onPressed: _saveSettings,
+                child: const Text('保存设置'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _isTesting ? null : _testConnection,
+                icon: _isTesting
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.wifi_tethering),
+                label: Text(_isTesting ? '测试中...' : '测试连接'),
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -103,6 +121,47 @@ class _LlmSettingsState extends ConsumerState<LlmSettings> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('LLM 设置已保存')),
       );
+    }
+  }
+  
+  Future<void> _testConnection() async {
+    if (_apiKeyController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请先输入 API Key')),
+      );
+      return;
+    }
+    
+    setState(() => _isTesting = true);
+    
+    try {
+      final llmService = ref.read(llmServiceProvider);
+      await llmService.testConnection(
+        apiKey: _apiKeyController.text,
+        baseUrl: _baseUrlController.text,
+      );
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('连接成功'),
+            backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('连接失败: $e'),
+            backgroundColor: Theme.of(context).colorScheme.errorContainer,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isTesting = false);
+      }
     }
   }
 }
