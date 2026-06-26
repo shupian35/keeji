@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,17 +7,50 @@ import 'package:keeji/core/providers.dart';
 import 'package:keeji/core/constants.dart';
 import 'package:keeji/models/video_record.dart';
 
-final videoListFutureProvider = FutureProvider<List<VideoRecord>>((ref) async {
+final videoListProvider = StateNotifierProvider<VideoListNotifier, AsyncValue<List<VideoRecord>>>((ref) {
   final db = ref.watch(databaseProvider);
-  return db.getAllVideos();
+  return VideoListNotifier(db);
 });
+
+class VideoListNotifier extends StateNotifier<AsyncValue<List<VideoRecord>>> {
+  final dynamic _db;
+  Timer? _timer;
+  
+  VideoListNotifier(this._db) : super(const AsyncValue.loading()) {
+    _loadVideos();
+    // 每2秒刷新一次
+    _timer = Timer.periodic(const Duration(seconds: 2), (_) => _loadVideos());
+  }
+  
+  Future<void> _loadVideos() async {
+    try {
+      final videos = await _db.getAllVideos();
+      state = AsyncValue.data(videos);
+    } catch (e) {
+      state = AsyncValue.error(e, StackTrace.current);
+    }
+  }
+  
+  Future<void> refresh() async {
+    await _loadVideos();
+  }
+  
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+}
+
+// 兼容旧代码
+final videoListFutureProvider = videoListProvider;
 
 class VideoList extends ConsumerWidget {
   const VideoList({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final videosAsync = ref.watch(videoListFutureProvider);
+    final videosAsync = ref.watch(videoListProvider);
     
     return videosAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -56,7 +90,7 @@ class VideoList extends ConsumerWidget {
             final video = videos[index];
             return VideoCard(
               video: video,
-              onRefresh: () => ref.invalidate(videoListFutureProvider),
+              onRefresh: () => ref.read(videoListProvider.notifier).refresh(),
             );
           },
         );

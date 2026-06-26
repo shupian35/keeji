@@ -235,7 +235,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       }
       
       // 刷新首页视频列表
-      ref.invalidate(videoListFutureProvider);
+      ref.read(videoListProvider.notifier).refresh();
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
