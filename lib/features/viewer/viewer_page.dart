@@ -259,12 +259,33 @@ class _MarkdownViewer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return SelectionArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: MarkdownBody(
           data: content,
           selectable: false,
+          styleSheet: MarkdownStyleSheet(
+            code: TextStyle(
+              backgroundColor: isDark 
+                  ? Theme.of(context).colorScheme.surfaceContainerHighest
+                  : Theme.of(context).colorScheme.surfaceContainerHighest,
+              color: Theme.of(context).colorScheme.onSurface,
+              fontSize: 14,
+            ),
+            codeblockDecoration: BoxDecoration(
+              color: isDark 
+                  ? Theme.of(context).colorScheme.surfaceContainerHighest
+                  : Theme.of(context).colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outlineVariant,
+              ),
+            ),
+            codeblockPadding: const EdgeInsets.all(12),
+          ),
         ),
       ),
     );
