@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 import 'package:keeji/core/providers.dart';
 import 'package:keeji/models/video_record.dart';
 import 'package:keeji/core/constants.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ImportPage extends ConsumerStatefulWidget {
   const ImportPage({super.key});
@@ -180,6 +181,12 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   }
   
   Future<void> _importFiles() async {
+    // 检查是否需要立即处理且配置是否完整
+    if (_startProcessing) {
+      final configValid = await _checkApiConfig();
+      if (!configValid) return;
+    }
+    
     setState(() => _isImporting = true);
     
     final db = ref.read(databaseProvider);
@@ -213,6 +220,44 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         );
       }
     }
+  }
+  
+  Future<bool> _checkApiConfig() async {
+    final prefs = await SharedPreferences.getInstance();
+    final asrKey = prefs.getString('asr_api_key') ?? '';
+    final llmKey = prefs.getString('llm_api_key') ?? '';
+    
+    final missing = <String>[];
+    if (asrKey.isEmpty) missing.add('ASR API Key');
+    if (llmKey.isEmpty) missing.add('LLM API Key');
+    
+    if (missing.isEmpty) return true;
+    
+    if (!mounted) return false;
+    
+    final goToSettings = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('配置不完整'),
+        content: Text('以下配置缺失：\n${missing.join('\n')}\n\n请先在设置页面配置 API。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('去设置'),
+          ),
+        ],
+      ),
+    );
+    
+    if (goToSettings == true && mounted) {
+      Navigator.pushNamed(context, '/settings');
+    }
+    
+    return false;
   }
   
   void _startProcessingVideos(List<VideoRecord> videos) {
