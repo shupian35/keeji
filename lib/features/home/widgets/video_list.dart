@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:keeji/core/providers.dart';
 import 'package:keeji/models/video_record.dart';
 
@@ -51,7 +52,10 @@ class VideoList extends ConsumerWidget {
           itemCount: videos.length,
           itemBuilder: (context, index) {
             final video = videos[index];
-            return VideoCard(video: video);
+            return VideoCard(
+              video: video,
+              onRefresh: () => ref.invalidate(videoListFutureProvider),
+            );
           },
         );
       },
@@ -61,8 +65,13 @@ class VideoList extends ConsumerWidget {
 
 class VideoCard extends ConsumerWidget {
   final VideoRecord video;
+  final VoidCallback onRefresh;
   
-  const VideoCard({super.key, required this.video});
+  const VideoCard({
+    super.key,
+    required this.video,
+    required this.onRefresh,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -79,17 +88,25 @@ class VideoCard extends ConsumerWidget {
         trailing: PopupMenuButton<String>(
           onSelected: (value) => _handleAction(context, ref, value),
           itemBuilder: (context) => [
-            const PopupMenuItem(
-              value: 'view',
-              child: Text('查看笔记'),
-            ),
+            if (video.status == VideoStatus.done)
+              const PopupMenuItem(
+                value: 'view',
+                child: Text('查看笔记'),
+              ),
+            if (video.status == VideoStatus.failed)
+              const PopupMenuItem(
+                value: 'retry',
+                child: Text('重试'),
+              ),
             const PopupMenuItem(
               value: 'delete',
               child: Text('删除'),
             ),
           ],
         ),
-        onTap: () => _viewNote(context),
+        onTap: video.status == VideoStatus.done
+            ? () => _viewNote(context)
+            : null,
       ),
     );
   }
@@ -101,9 +118,13 @@ class VideoCard extends ConsumerWidget {
           child: Icon(Icons.hourglass_empty),
         );
       case VideoStatus.processing:
-        return CircularProgressIndicator(
-          value: video.progress,
-          strokeWidth: 3,
+        return SizedBox(
+          width: 40,
+          height: 40,
+          child: CircularProgressIndicator(
+            value: video.progress,
+            strokeWidth: 3,
+          ),
         );
       case VideoStatus.done:
         return CircleAvatar(
@@ -138,6 +159,8 @@ class VideoCard extends ConsumerWidget {
         return Text(
           video.error ?? '处理失败',
           style: TextStyle(color: Theme.of(context).colorScheme.error),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         );
     }
   }
@@ -147,6 +170,9 @@ class VideoCard extends ConsumerWidget {
       case 'view':
         _viewNote(context);
         break;
+      case 'retry':
+        _retryProcessing(context, ref);
+        break;
       case 'delete':
         _deleteVideo(context, ref);
         break;
@@ -154,7 +180,21 @@ class VideoCard extends ConsumerWidget {
   }
   
   void _viewNote(BuildContext context) {
-    // TODO: 跳转到笔记查看页面
+    context.push('/viewer/${video.id}');
+  }
+  
+  Future<void> _retryProcessing(BuildContext context, WidgetRef ref) async {
+    try {
+      final processor = ref.read(videoProcessorProvider);
+      await processor.retryProcessing(video: video);
+      onRefresh();
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('重试失败: $e')),
+        );
+      }
+    }
   }
   
   void _deleteVideo(BuildContext context, WidgetRef ref) {
@@ -171,9 +211,18 @@ class VideoCard extends ConsumerWidget {
           TextButton(
             onPressed: () async {
               final db = ref.read(databaseProvider);
+              
+              final note = await db.getNoteByVideoId(video.id);
+              if (note != null) {
+                await db.deleteNote(note.id);
+              }
+              
               await db.deleteVideo(video.id);
-              ref.invalidate(videoListFutureProvider);
-              if (context.mounted) Navigator.pop(context);
+              onRefresh();
+              
+              if (context.mounted) {
+                Navigator.pop(context);
+              }
             },
             child: const Text('删除'),
           ),

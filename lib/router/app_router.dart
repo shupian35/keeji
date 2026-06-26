@@ -2,7 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:keeji/features/home/home_page.dart';
 import 'package:keeji/features/import/import_page.dart';
+import 'package:keeji/features/processing/processing_page.dart';
 import 'package:keeji/features/settings/settings_page.dart';
+import 'package:keeji/features/viewer/viewer_page.dart';
 import 'package:keeji/widgets/adaptive_scaffold.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -44,6 +46,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/import',
         builder: (context, state) => const ImportPage(),
+      ),
+      GoRoute(
+        path: '/viewer/:videoId',
+        builder: (context, state) {
+          final videoId = state.pathParameters['videoId']!;
+          return ViewerPage(videoId: videoId);
+        },
+      ),
+      GoRoute(
+        path: '/processing/:videoId',
+        builder: (context, state) {
+          final videoId = state.pathParameters['videoId']!;
+          return ProcessingPage(videoId: videoId);
+        },
       ),
     ],
   );

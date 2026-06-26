@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:keeji/features/settings/widgets/asr_settings.dart';
 import 'package:keeji/features/settings/widgets/llm_settings.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
@@ -71,20 +72,52 @@ class SettingsPage extends ConsumerWidget {
   }
 }
 
-class _OtherSettings extends ConsumerWidget {
+class _OtherSettings extends ConsumerStatefulWidget {
   const _OtherSettings();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_OtherSettings> createState() => _OtherSettingsState();
+}
+
+class _OtherSettingsState extends ConsumerState<_OtherSettings> {
+  bool _audioChunkEnabled = true;
+  bool _isLoading = true;
+  
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+  
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _audioChunkEnabled = prefs.getBool('audio_chunk_enabled') ?? true;
+      _isLoading = false;
+    });
+  }
+  
+  Future<void> _saveSettings(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('audio_chunk_enabled', value);
+    setState(() {
+      _audioChunkEnabled = value;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    
     return Column(
       children: [
         SwitchListTile(
           title: const Text('启用长音频分段'),
           subtitle: const Text('长音频自动在静音处切分后转写'),
-          value: true,
-          onChanged: (value) {
-            // TODO: 保存设置
-          },
+          value: _audioChunkEnabled,
+          onChanged: _saveSettings,
         ),
       ],
     );

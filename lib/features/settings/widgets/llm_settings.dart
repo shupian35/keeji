@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:keeji/core/constants.dart';
+import 'package:keeji/core/providers.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LlmSettings extends ConsumerStatefulWidget {
   const LlmSettings({super.key});
@@ -13,14 +15,25 @@ class _LlmSettingsState extends ConsumerState<LlmSettings> {
   late TextEditingController _apiKeyController;
   late TextEditingController _baseUrlController;
   late TextEditingController _modelController;
+  bool _isLoading = true;
   
   @override
   void initState() {
     super.initState();
     _apiKeyController = TextEditingController();
-    _baseUrlController = TextEditingController(text: AppConstants.defaultLlmBaseUrl);
-    _modelController = TextEditingController(text: AppConstants.defaultLlmModel);
-    // TODO: 从 SharedPreferences 加载保存的设置
+    _baseUrlController = TextEditingController();
+    _modelController = TextEditingController();
+    _loadSettings();
+  }
+  
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _apiKeyController.text = prefs.getString('llm_api_key') ?? '';
+      _baseUrlController.text = prefs.getString('llm_base_url') ?? AppConstants.defaultLlmBaseUrl;
+      _modelController.text = prefs.getString('llm_model') ?? AppConstants.defaultLlmModel;
+      _isLoading = false;
+    });
   }
   
   @override
@@ -33,6 +46,10 @@ class _LlmSettingsState extends ConsumerState<LlmSettings> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    
     return Column(
       children: [
         TextField(
@@ -74,10 +91,18 @@ class _LlmSettingsState extends ConsumerState<LlmSettings> {
     );
   }
   
-  void _saveSettings() {
-    // TODO: 保存到 SharedPreferences
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('LLM 设置已保存')),
+  Future<void> _saveSettings() async {
+    final llmService = ref.read(llmServiceProvider);
+    await llmService.updateConfig(
+      apiKey: _apiKeyController.text,
+      baseUrl: _baseUrlController.text,
+      model: _modelController.text,
     );
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('LLM 设置已保存')),
+      );
+    }
   }
 }

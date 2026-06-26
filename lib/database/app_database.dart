@@ -72,6 +72,13 @@ class AppDatabase {
     return _videoFromMap(maps.first);
   }
   
+  Stream<VideoRecord?> watchVideoById(String id) async* {
+    while (true) {
+      yield await getVideoById(id);
+      await Future.delayed(const Duration(seconds: 1));
+    }
+  }
+  
   Future<void> insertVideo(VideoRecord video) async {
     final db = await database;
     await db.insert('video_records', _videoToMap(video));
