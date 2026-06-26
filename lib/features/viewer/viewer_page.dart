@@ -107,13 +107,7 @@ class _ViewerPageState extends ConsumerState<ViewerPage> {
           const VerticalDivider(width: 1),
           Expanded(
             child: note != null
-                ? SelectionArea(
-                    child: Markdown(
-                      data: note.contentMd,
-                      padding: const EdgeInsets.all(16),
-                      selectable: true,
-                    ),
-                  )
+                ? _MarkdownViewer(content: note.contentMd)
                 : Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -237,5 +231,24 @@ class _ViewerPageState extends ConsumerState<ViewerPage> {
         setState(() => _isRegenerating = false);
       }
     }
+  }
+}
+
+class _MarkdownViewer extends StatelessWidget {
+  final String content;
+  
+  const _MarkdownViewer({required this.content});
+
+  @override
+  Widget build(BuildContext context) {
+    return SelectionArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: MarkdownBody(
+          data: content,
+          selectable: false,
+        ),
+      ),
+    );
   }
 }
