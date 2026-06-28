@@ -151,6 +151,14 @@ class VideoList extends ConsumerWidget {
             child: const Text('取消全选'),
           ),
           const SizedBox(width: 8),
+          OutlinedButton.icon(
+            onPressed: selectedIds.isNotEmpty
+                ? () => _batchDelete(context, ref, videos, selectedIds)
+                : null,
+            icon: const Icon(Icons.delete_outline),
+            label: const Text('批量删除'),
+          ),
+          const SizedBox(width: 8),
           FilledButton.icon(
             onPressed: selectedIds.isNotEmpty
                 ? () => _batchExport(context, ref, videos, selectedIds)
@@ -251,6 +259,61 @@ class VideoList extends ConsumerWidget {
       if (context.mounted) {
         ErrorHandler.showError(context, e, title: '批量导出失败');
       }
+    }
+  }
+  
+  Future<void> _batchDelete(BuildContext context, WidgetRef ref, List<VideoRecord> videos, Set<String> selectedIds) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: Icon(
+          Icons.warning_amber,
+          color: Theme.of(ctx).colorScheme.error,
+        ),
+        title: const Text('确认批量删除'),
+        content: Text('确定要删除选中的 ${selectedIds.length} 个视频吗？相关的笔记也会被删除，此操作不可撤销。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+    
+    if (confirmed != true) return;
+    
+    final db = ref.read(databaseProvider);
+    int deletedCount = 0;
+    
+    for (final videoId in selectedIds) {
+      try {
+        final note = await db.getNoteByVideoId(videoId);
+        if (note != null) {
+          await db.deleteNote(note.id);
+        }
+        await db.deleteVideo(videoId);
+        deletedCount++;
+      } catch (e) {
+        // 继续删除其他视频
+      }
+    }
+    
+    ref.read(selectedIdsProvider.notifier).state = {};
+    ref.read(selectionModeProvider.notifier).state = false;
+    ref.read(videoListProvider.notifier).refresh();
+    
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('已删除 $deletedCount 个视频')),
+      );
     }
   }
 }
