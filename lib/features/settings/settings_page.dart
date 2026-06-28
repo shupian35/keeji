@@ -4,6 +4,7 @@ import 'package:keeji/app.dart';
 import 'package:keeji/core/theme_provider.dart';
 import 'package:keeji/features/settings/widgets/asr_settings.dart';
 import 'package:keeji/features/settings/widgets/llm_settings.dart';
+import 'package:keeji/features/settings/widgets/about_settings.dart';
 import 'package:keeji/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -54,6 +55,13 @@ class SettingsPage extends ConsumerWidget {
             title: l10n.otherSettings,
             icon: Icons.tune,
             child: const _OtherSettings(),
+          ),
+          const SizedBox(height: 16),
+          _buildSection(
+            context,
+            title: l10n.about,
+            icon: Icons.info_outline,
+            child: const AboutSettings(),
           ),
         ],
       ),

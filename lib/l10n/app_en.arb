@@ -126,5 +126,13 @@
   "volume": "Volume",
   "fullscreen": "Fullscreen",
   "exitFullscreen": "Exit Fullscreen",
-  "buffering": "Buffering..."
+  "buffering": "Buffering...",
+  "about": "About",
+  "version": "Version",
+  "projectHomepage": "Project Homepage",
+  "openSourceLicenses": "Open Source Licenses",
+  "errorLogs": "Error Logs",
+  "noErrorLogs": "No error logs",
+  "clearErrorLogs": "Clear Logs",
+  "errorLogsCleared": "Error logs cleared"
 }

@@ -126,5 +126,13 @@
   "volume": "音量",
   "fullscreen": "全螢幕",
   "exitFullscreen": "退出全螢幕",
-  "buffering": "緩衝中..."
+  "buffering": "緩衝中...",
+  "about": "關於",
+  "version": "版本",
+  "projectHomepage": "專案主頁",
+  "openSourceLicenses": "開源許可證",
+  "errorLogs": "錯誤日誌",
+  "noErrorLogs": "暫無錯誤日誌",
+  "clearErrorLogs": "清除日誌",
+  "errorLogsCleared": "錯誤日誌已清除"
 }

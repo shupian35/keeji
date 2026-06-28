@@ -57,6 +57,8 @@ dependencies:
   media_kit_video: ^2.0.1
   media_kit_libs_video: ^1.0.7
   media_kit_libs_windows_video: ^1.0.11
+  url_launcher: ^6.3.2
+  package_info_plus: ^9.0.1
 
 dev_dependencies:
   flutter_test:

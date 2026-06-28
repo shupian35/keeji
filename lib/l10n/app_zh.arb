@@ -126,5 +126,13 @@
   "volume": "音量",
   "fullscreen": "全屏",
   "exitFullscreen": "退出全屏",
-  "buffering": "缓冲中..."
+  "buffering": "缓冲中...",
+  "about": "关于",
+  "version": "版本",
+  "projectHomepage": "项目主页",
+  "openSourceLicenses": "开源许可证",
+  "errorLogs": "错误日志",
+  "noErrorLogs": "暂无错误日志",
+  "clearErrorLogs": "清除日志",
+  "errorLogsCleared": "错误日志已清除"
 }
