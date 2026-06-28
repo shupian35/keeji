@@ -2,8 +2,9 @@ name: Build and Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches: [master]
+    paths:
+      - 'pubspec.yaml'
 
 permissions:
   contents: write
@@ -160,12 +161,21 @@ jobs:
     needs: [build-windows, build-macos-arm64, build-linux, build-android, build-ios]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+      - name: Get version from pubspec.yaml
+        id: version
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //' | cut -d'+' -f1)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.tag }}
           files: |
             artifacts/windows/keji_flutter-windows-x64.zip
             artifacts/macos-arm64/keji_flutter-macos-arm64.dmg
