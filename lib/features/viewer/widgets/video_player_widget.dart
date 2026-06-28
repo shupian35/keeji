@@ -1,11 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'video_controls.dart';
 
 class VideoPlayerWidget extends StatefulWidget {
   final String videoPath;
+  final Player? player;
+  final VideoController? controller;
 
-  const VideoPlayerWidget({super.key, required this.videoPath});
+  const VideoPlayerWidget({
+    super.key,
+    required this.videoPath,
+    this.player,
+    this.controller,
+  });
 
   @override
   State<VideoPlayerWidget> createState() => _VideoPlayerWidgetState();
@@ -16,13 +25,22 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   late final VideoController _controller;
   bool _isInitialized = false;
   bool _hasError = false;
+  bool _ownsPlayer = false;
+  final FocusNode _focusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
-    _player = Player();
-    _controller = VideoController(_player);
-    _initPlayer();
+    if (widget.player != null && widget.controller != null) {
+      _player = widget.player!;
+      _controller = widget.controller!;
+      _isInitialized = true;
+    } else {
+      _player = Player();
+      _controller = VideoController(_player);
+      _ownsPlayer = true;
+      _initPlayer();
+    }
   }
 
   Future<void> _initPlayer() async {
@@ -40,8 +58,28 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
 
   @override
   void dispose() {
-    _player.dispose();
+    _focusNode.dispose();
+    if (_ownsPlayer) {
+      _player.dispose();
+    }
     super.dispose();
+  }
+
+  void _handleKeyEvent(KeyEvent event) {
+    if (event is KeyDownEvent) {
+      if (event.logicalKey == LogicalKeyboardKey.space) {
+        _player.playOrPause();
+      } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+        final newPos = _player.state.position - const Duration(seconds: 5);
+        _player.seek(newPos);
+      } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+        final newPos = _player.state.position + const Duration(seconds: 5);
+        _player.seek(newPos);
+      } else if (event.logicalKey == LogicalKeyboardKey.keyM) {
+        final currentVol = _player.state.volume;
+        _player.setVolume(currentVol > 0 ? 0 : 100);
+      }
+    }
   }
 
   @override
@@ -52,44 +90,49 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
     if (!_isInitialized) {
       return const Center(child: CircularProgressIndicator());
     }
-    return Column(
-      children: [
-        Expanded(
-          child: GestureDetector(
-            onTap: _togglePlay,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Container(
-                  color: Colors.black,
-                  child: Center(
-                    child: Video(
-                      controller: _controller,
-                      controls: NoVideoControls,
+    return KeyboardListener(
+      focusNode: _focusNode,
+      autofocus: true,
+      onKeyEvent: _handleKeyEvent,
+      child: Column(
+        children: [
+          Expanded(
+            child: GestureDetector(
+              onTap: () => _player.playOrPause(),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    color: Colors.black,
+                    child: Center(
+                      child: Video(
+                        controller: _controller,
+                        controls: NoVideoControls,
+                      ),
                     ),
                   ),
-                ),
-                StreamBuilder<bool>(
-                  stream: _player.stream.playing,
-                  initialData: _player.state.playing,
-                  builder: (context, snapshot) {
-                    final isPlaying = snapshot.data ?? false;
-                    if (!isPlaying) {
-                      return Icon(
-                        Icons.play_arrow_rounded,
-                        size: 64,
-                        color: Colors.white.withAlpha(180),
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  },
-                ),
-              ],
+                  StreamBuilder<bool>(
+                    stream: _player.stream.playing,
+                    initialData: _player.state.playing,
+                    builder: (context, snapshot) {
+                      final isPlaying = snapshot.data ?? false;
+                      if (!isPlaying) {
+                        return Icon(
+                          Icons.play_arrow_rounded,
+                          size: 64,
+                          color: Colors.white.withAlpha(180),
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-        _buildControls(context),
-      ],
+          VideoControls(player: _player),
+        ],
+      ),
     );
   }
 
@@ -104,98 +147,5 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
         ],
       ),
     );
-  }
-
-  Widget _buildControls(BuildContext context) {
-    return StreamBuilder(
-      stream: _player.stream.playing,
-      initialData: _player.state.playing,
-      builder: (context, playingSnapshot) {
-        return StreamBuilder<Duration>(
-          stream: _player.stream.position,
-          initialData: _player.state.position,
-          builder: (context, positionSnapshot) {
-            return StreamBuilder<Duration>(
-              stream: _player.stream.duration,
-              initialData: _player.state.duration,
-              builder: (context, durationSnapshot) {
-                return StreamBuilder<double>(
-                  stream: _player.stream.volume,
-                  initialData: _player.state.volume,
-                  builder: (context, volumeSnapshot) {
-                    final isPlaying = playingSnapshot.data ?? false;
-                    final position = positionSnapshot.data ?? Duration.zero;
-                    final duration = durationSnapshot.data ?? Duration.zero;
-                    final volume = volumeSnapshot.data ?? 100.0;
-
-                    return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      color: Colors.grey[900],
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          LinearProgressIndicator(
-                            value: duration.inMilliseconds > 0
-                                ? position.inMilliseconds / duration.inMilliseconds
-                                : 0,
-                            backgroundColor: Colors.white12,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Theme.of(context).colorScheme.primary,
-                            ),
-                          ),
-                          Row(
-                            children: [
-                              IconButton(
-                                icon: Icon(
-                                  isPlaying ? Icons.pause : Icons.play_arrow,
-                                  color: Colors.white,
-                                ),
-                                onPressed: _togglePlay,
-                              ),
-                              Expanded(
-                                child: Text(
-                                  '${_formatDuration(position)} / ${_formatDuration(duration)}',
-                                  style: const TextStyle(color: Colors.white, fontSize: 12),
-                                ),
-                              ),
-                              IconButton(
-                                icon: Icon(
-                                  volume > 0 ? Icons.volume_up : Icons.volume_off,
-                                  color: Colors.white,
-                                  size: 20,
-                                ),
-                                onPressed: _toggleMute,
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                );
-              },
-            );
-          },
-        );
-      },
-    );
-  }
-
-  void _togglePlay() {
-    _player.playOrPause();
-  }
-
-  void _toggleMute() {
-    final currentVol = _player.state.volume;
-    _player.setVolume(currentVol > 0 ? 0.0 : 100.0);
-  }
-
-  String _formatDuration(Duration d) {
-    final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    if (d.inHours > 0) {
-      return '${d.inHours}:$minutes:$seconds';
-    }
-    return '$minutes:$seconds';
   }
 }
