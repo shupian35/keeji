@@ -6,6 +6,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:keeji/core/providers.dart';
 import 'package:keeji/core/constants.dart';
 import 'package:keeji/core/error_handler.dart';
+import 'package:keeji/features/home/home_page.dart';
 import 'package:keeji/models/video_record.dart';
 import 'package:keeji/models/note.dart';
 
@@ -43,99 +44,23 @@ class VideoListNotifier extends StateNotifier<AsyncValue<List<VideoRecord>>> {
   }
 }
 
-class VideoList extends ConsumerStatefulWidget {
+final selectedIdsProvider = StateProvider<Set<String>>((ref) => {});
+
+class VideoList extends ConsumerWidget {
   const VideoList({super.key});
 
   @override
-  ConsumerState<VideoList> createState() => _VideoListState();
-}
-
-class _VideoListState extends ConsumerState<VideoList> {
-  bool _isSelectionMode = false;
-  final Set<String> _selectedIds = {};
-  
-  void _toggleSelectionMode() {
-    setState(() {
-      _isSelectionMode = !_isSelectionMode;
-      if (!_isSelectionMode) {
-        _selectedIds.clear();
-      }
-    });
-  }
-  
-  void _toggleSelection(String videoId) {
-    setState(() {
-      if (_selectedIds.contains(videoId)) {
-        _selectedIds.remove(videoId);
-      } else {
-        _selectedIds.add(videoId);
-      }
-    });
-  }
-  
-  void _selectAll(List<VideoRecord> videos) {
-    setState(() {
-      _selectedIds.clear();
-      _selectedIds.addAll(videos.map((v) => v.id));
-    });
-  }
-  
-  void _deselectAll() {
-    setState(() {
-      _selectedIds.clear();
-    });
-  }
-  
-  Future<void> _batchExport(List<VideoRecord> videos) async {
-    if (_selectedIds.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请先选择要导出的笔记')),
-      );
-      return;
-    }
-    
-    final selectedVideos = videos.where((v) => _selectedIds.contains(v.id)).toList();
-    final db = ref.read(databaseProvider);
-    final notes = <Note>[];
-    
-    for (final video in selectedVideos) {
-      final note = await db.getNoteByVideoId(video.id);
-      if (note != null) {
-        notes.add(note);
-      }
-    }
-    
-    if (notes.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('选中的视频没有笔记')),
-        );
-      }
-      return;
-    }
-    
-    try {
-      final exportService = ref.read(exportServiceProvider);
-      final result = await exportService.batchExportNotes(notes);
-      
-      if (mounted) {
-        if (result != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('已导出 ${notes.length} 个笔记到: $result')),
-          );
-          _toggleSelectionMode();
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ErrorHandler.showError(context, e, title: '批量导出失败');
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final videosAsync = ref.watch(videoListProvider);
+    final isSelectionMode = ref.watch(selectionModeProvider);
+    final selectedIds = ref.watch(selectedIdsProvider);
+    
+    // 当退出选择模式时清空选择
+    ref.listen(selectionModeProvider, (prev, next) {
+      if (prev == true && next == false) {
+        ref.read(selectedIdsProvider.notifier).state = {};
+      }
+    });
     
     return videosAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -168,12 +93,10 @@ class _VideoListState extends ConsumerState<VideoList> {
           );
         }
         
-        final doneVideos = videos.where((v) => v.status == VideoStatus.done).toList();
-        
         return Column(
           children: [
-            if (_isSelectionMode)
-              _buildSelectionBar(videos, doneVideos),
+            if (isSelectionMode)
+              _buildSelectionBar(context, ref, videos, selectedIds),
             Expanded(
               child: ListView.builder(
                 padding: const EdgeInsets.all(16),
@@ -182,10 +105,18 @@ class _VideoListState extends ConsumerState<VideoList> {
                   final video = videos[index];
                   return VideoCard(
                     video: video,
-                    isSelectionMode: _isSelectionMode,
-                    isSelected: _selectedIds.contains(video.id),
+                    isSelectionMode: isSelectionMode,
+                    isSelected: selectedIds.contains(video.id),
                     onRefresh: () => ref.read(videoListProvider.notifier).refresh(),
-                    onToggleSelection: () => _toggleSelection(video.id),
+                    onToggleSelection: () {
+                      final ids = Set<String>.from(ref.read(selectedIdsProvider));
+                      if (ids.contains(video.id)) {
+                        ids.remove(video.id);
+                      } else {
+                        ids.add(video.id);
+                      }
+                      ref.read(selectedIdsProvider.notifier).state = ids;
+                    },
                   );
                 },
               ),
@@ -196,39 +127,80 @@ class _VideoListState extends ConsumerState<VideoList> {
     );
   }
   
-  Widget _buildSelectionBar(List<VideoRecord> allVideos, List<VideoRecord> doneVideos) {
+  Widget _buildSelectionBar(BuildContext context, WidgetRef ref, List<VideoRecord> videos, Set<String> selectedIds) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       color: Theme.of(context).colorScheme.surfaceContainerHighest,
       child: Row(
         children: [
           Text(
-            '已选择 ${_selectedIds.length} 项',
+            '已选择 ${selectedIds.length} 项',
             style: Theme.of(context).textTheme.titleSmall,
           ),
           const Spacer(),
           TextButton(
-            onPressed: () => _selectAll(allVideos),
+            onPressed: () {
+              ref.read(selectedIdsProvider.notifier).state = videos.map((v) => v.id).toSet();
+            },
             child: const Text('全选'),
           ),
           TextButton(
-            onPressed: _deselectAll,
+            onPressed: () {
+              ref.read(selectedIdsProvider.notifier).state = {};
+            },
             child: const Text('取消全选'),
           ),
           const SizedBox(width: 8),
           FilledButton.icon(
-            onPressed: _selectedIds.isNotEmpty ? () => _batchExport(allVideos) : null,
+            onPressed: selectedIds.isNotEmpty
+                ? () => _batchExport(context, ref, videos, selectedIds)
+                : null,
             icon: const Icon(Icons.archive),
             label: const Text('批量导出'),
-          ),
-          const SizedBox(width: 8),
-          IconButton(
-            onPressed: _toggleSelectionMode,
-            icon: const Icon(Icons.close),
           ),
         ],
       ),
     );
+  }
+  
+  Future<void> _batchExport(BuildContext context, WidgetRef ref, List<VideoRecord> videos, Set<String> selectedIds) async {
+    final selectedVideos = videos.where((v) => selectedIds.contains(v.id)).toList();
+    final db = ref.read(databaseProvider);
+    final notes = <Note>[];
+    
+    for (final video in selectedVideos) {
+      final note = await db.getNoteByVideoId(video.id);
+      if (note != null) {
+        notes.add(note);
+      }
+    }
+    
+    if (notes.isEmpty) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('选中的视频没有笔记')),
+        );
+      }
+      return;
+    }
+    
+    try {
+      final exportService = ref.read(exportServiceProvider);
+      final result = await exportService.batchExportNotes(notes);
+      
+      if (context.mounted) {
+        if (result != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('已导出 ${notes.length} 个笔记到: $result')),
+          );
+          ref.read(selectionModeProvider.notifier).state = false;
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ErrorHandler.showError(context, e, title: '批量导出失败');
+      }
+    }
   }
 }
 
@@ -293,7 +265,6 @@ class VideoCard extends ConsumerWidget {
         onTap: isSelectionMode
             ? onToggleSelection
             : (video.status == VideoStatus.done ? () => _viewNote(context) : null),
-        onLongPress: isSelectionMode ? null : onToggleSelection,
       ),
     );
   }
