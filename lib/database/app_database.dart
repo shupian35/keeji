@@ -158,6 +158,16 @@ class AppDatabase {
     await db.insert('notes', _noteToMap(note));
   }
   
+  Future<void> updateNote(Note note) async {
+    final db = await database;
+    await db.update(
+      'notes',
+      _noteToMap(note),
+      where: 'id = ?',
+      whereArgs: [note.id],
+    );
+  }
+  
   Future<void> deleteNote(String id) async {
     final db = await database;
     await db.delete('notes', where: 'id = ?', whereArgs: [id]);

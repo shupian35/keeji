@@ -397,29 +397,18 @@ class _ImportPageState extends ConsumerState<ImportPage> {
             );
             await db.insertVideo(video);
             
+            final noteId = const Uuid().v4();
+            await db.insertNote(Note(
+              id: noteId,
+              videoId: video.id,
+              title: fileName.replaceAll(RegExp(r'\.[^.]+$'), ''),
+              contentMd: content,
+              transcriptJson: content,
+              createdAt: DateTime.now(),
+            ));
+            
             if (shouldGenerate && content.isNotEmpty) {
-              final note = await llmService.generateNote(
-                transcript: content,
-                videoTitle: fileName.replaceAll(RegExp(r'\.[^.]+$'), ''),
-              );
-              
-              await db.insertNote(Note(
-                id: const Uuid().v4(),
-                videoId: video.id,
-                title: note.title,
-                contentMd: note.content,
-                transcriptJson: content,
-                createdAt: DateTime.now(),
-              ));
-            } else {
-              await db.insertNote(Note(
-                id: const Uuid().v4(),
-                videoId: video.id,
-                title: fileName.replaceAll(RegExp(r'\.[^.]+$'), ''),
-                contentMd: content,
-                transcriptJson: content,
-                createdAt: DateTime.now(),
-              ));
+              _generateNoteInBackground(db, llmService, noteId, video.id, content, fileName);
             }
             
             successCount++;
@@ -474,6 +463,33 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       processor.processVideo(video: video).catchError((e) {
         debugPrint('处理视频失败: $e');
       });
+    }
+  }
+  
+  Future<void> _generateNoteInBackground(
+    dynamic db,
+    dynamic llmService,
+    String noteId,
+    String videoId,
+    String content,
+    String fileName,
+  ) async {
+    try {
+      final note = await llmService.generateNote(
+        transcript: content,
+        videoTitle: fileName.replaceAll(RegExp(r'\.[^.]+$'), ''),
+      );
+      
+      await db.updateNote(Note(
+        id: noteId,
+        videoId: videoId,
+        title: note.title,
+        contentMd: note.content,
+        transcriptJson: content,
+        createdAt: DateTime.now(),
+      ));
+    } catch (e) {
+      debugPrint('后台生成笔记失败: $e');
     }
   }
 }
