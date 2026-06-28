@@ -214,11 +214,13 @@ class VideoList extends ConsumerWidget {
     final selectedVideos = videos.where((v) => selectedIds.contains(v.id)).toList();
     final db = ref.read(databaseProvider);
     final notes = <Note>[];
+    final videoFilenames = <String, String>{}; // videoId -> filename
     
     for (final video in selectedVideos) {
       final note = await db.getNoteByVideoId(video.id);
       if (note != null) {
         notes.add(note);
+        videoFilenames[video.id] = video.filename;
       }
     }
     
@@ -237,13 +239,13 @@ class VideoList extends ConsumerWidget {
       
       switch (exportType) {
         case 'notes':
-          result = await exportService.batchExportNotes(notes, exportTranscripts: false);
+          result = await exportService.batchExportNotes(notes, exportTranscripts: false, videoFilenames: videoFilenames);
           break;
         case 'transcripts':
-          result = await exportService.batchExportNotes(notes, exportNotes: false, exportTranscripts: true);
+          result = await exportService.batchExportNotes(notes, exportNotes: false, exportTranscripts: true, videoFilenames: videoFilenames);
           break;
         case 'both':
-          result = await exportService.batchExportNotes(notes, exportNotes: true, exportTranscripts: true);
+          result = await exportService.batchExportNotes(notes, exportNotes: true, exportTranscripts: true, videoFilenames: videoFilenames);
           break;
       }
       

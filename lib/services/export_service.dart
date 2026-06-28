@@ -92,18 +92,25 @@ class ExportService {
     List<Note> notes, {
     bool exportNotes = true,
     bool exportTranscripts = false,
+    Map<String, String>? videoFilenames, // videoId -> filename
   }) async {
     if (notes.isEmpty) return null;
     
     final filesToExport = <String, String>{}; // fileName -> content
     
     for (final note in notes) {
+      // 获取源文件名
+      final sourceFileName = videoFilenames?[note.videoId];
+      final baseName = sourceFileName != null && sourceFileName.isNotEmpty
+          ? _sanitizeFileName(sourceFileName.replaceAll(RegExp(r'\.[^.]+$'), ''))
+          : _sanitizeFileName(note.title);
+      
       if (exportNotes) {
-        final fileName = '${_sanitizeFileName(note.title)}.md';
+        final fileName = '$baseName.md';
         filesToExport[fileName] = note.contentMd;
       }
       if (exportTranscripts) {
-        final fileName = '${_sanitizeFileName(note.title)}_转写.txt';
+        final fileName = '${baseName}_转写.txt';
         String text = note.contentMd;
         if (note.transcriptJson != null && note.transcriptJson!.isNotEmpty) {
           text = note.transcriptJson!;
