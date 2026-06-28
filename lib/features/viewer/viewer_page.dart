@@ -112,7 +112,19 @@ class _ViewerPageState extends ConsumerState<ViewerPage> {
           if (video.sourceType == SourceType.video) ...[
             SizedBox(
               width: 400,
-              child: VideoPlayerWidget(videoPath: video.filePath),
+              child: Stack(
+                children: [
+                  VideoPlayerWidget(videoPath: video.filePath),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: IconButton(
+                      icon: const Icon(Icons.fullscreen, color: Colors.white),
+                      onPressed: () => _enterFullscreen(video.filePath),
+                    ),
+                  ),
+                ],
+              ),
             ),
             const VerticalDivider(width: 1),
           ],
@@ -252,6 +264,42 @@ class _ViewerPageState extends ConsumerState<ViewerPage> {
         setState(() => _isRegenerating = false);
       }
     }
+  }
+  
+  void _enterFullscreen(String videoPath) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => _FullscreenVideoPage(videoPath: videoPath),
+      ),
+    );
+  }
+}
+
+class _FullscreenVideoPage extends StatelessWidget {
+  final String videoPath;
+
+  const _FullscreenVideoPage({required this.videoPath});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          Center(
+            child: VideoPlayerWidget(videoPath: videoPath),
+          ),
+          Positioned(
+            top: 16,
+            left: 16,
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
