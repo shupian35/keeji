@@ -1,7 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
 import 'package:keeji/core/constants.dart';
+import 'package:keeji/core/app_path.dart';
 import 'package:keeji/models/video_record.dart';
 import 'package:keeji/models/note.dart';
 
@@ -18,8 +18,8 @@ class AppDatabase {
   }
   
   Future<Database> _initDatabase() async {
-    final dir = await getApplicationDocumentsDirectory();
-    final dbPath = path.join(dir.path, AppConstants.dbName);
+    final dir = await AppPath.getDataDir();
+    final dbPath = path.join(dir, AppConstants.dbName);
     
     return openDatabase(
       dbPath,
