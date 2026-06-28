@@ -161,12 +161,12 @@ class _ViewerPageState extends ConsumerState<ViewerPage> {
     switch (action) {
       case 'export_md':
         if (note != null) {
-          await _exportMarkdown(note);
+          await _exportMarkdown(note, video.filename);
         }
         break;
       case 'export_txt':
         if (note != null) {
-          await _exportTranscript(note);
+          await _exportTranscript(note, video.filename);
         }
         break;
       case 'regenerate':
@@ -176,7 +176,6 @@ class _ViewerPageState extends ConsumerState<ViewerPage> {
   }
   
   void _copyNote(Note note) {
-    // 复制笔记内容到剪贴板
     Clipboard.setData(ClipboardData(text: note.contentMd));
     
     if (mounted) {
@@ -186,10 +185,10 @@ class _ViewerPageState extends ConsumerState<ViewerPage> {
     }
   }
   
-  Future<void> _exportMarkdown(Note note) async {
+  Future<void> _exportMarkdown(Note note, String videoFilename) async {
     try {
       final exportService = ref.read(exportServiceProvider);
-      final outputPath = await exportService.exportNoteAsMarkdown(note);
+      final outputPath = await exportService.exportNoteAsMarkdown(note, sourceFileName: videoFilename);
       
       if (outputPath != null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -203,10 +202,10 @@ class _ViewerPageState extends ConsumerState<ViewerPage> {
     }
   }
   
-  Future<void> _exportTranscript(Note note) async {
+  Future<void> _exportTranscript(Note note, String videoFilename) async {
     try {
       final exportService = ref.read(exportServiceProvider);
-      final outputPath = await exportService.exportTranscriptAsText(note);
+      final outputPath = await exportService.exportTranscriptAsText(note, sourceFileName: videoFilename);
       
       if (outputPath != null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

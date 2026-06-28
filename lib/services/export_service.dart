@@ -11,8 +11,18 @@ class ExportService {
   factory ExportService() => _instance;
   ExportService._();
   
-  Future<String?> exportNoteAsMarkdown(Note note) async {
-    final fileName = '${_sanitizeFileName(note.title)}.md';
+  String _getExportFileName(Note note, String? sourceFileName, String extension) {
+    // 优先使用源文件名（去掉扩展名）
+    if (sourceFileName != null && sourceFileName.isNotEmpty) {
+      final nameWithoutExt = sourceFileName.replaceAll(RegExp(r'\.[^.]+$'), '');
+      return '${_sanitizeFileName(nameWithoutExt)}.$extension';
+    }
+    // 否则使用笔记标题
+    return '${_sanitizeFileName(note.title)}.$extension';
+  }
+  
+  Future<String?> exportNoteAsMarkdown(Note note, {String? sourceFileName}) async {
+    final fileName = _getExportFileName(note, sourceFileName, 'md');
     
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       final outputPath = await FilePicker.platform.saveFile(
@@ -42,8 +52,8 @@ class ExportService {
     }
   }
   
-  Future<String?> exportTranscriptAsText(Note note) async {
-    final fileName = '${_sanitizeFileName(note.title)}_转写.txt';
+  Future<String?> exportTranscriptAsText(Note note, {String? sourceFileName}) async {
+    final fileName = _getExportFileName(note, sourceFileName, 'txt');
     
     String text = note.contentMd;
     if (note.transcriptJson != null && note.transcriptJson!.isNotEmpty) {
@@ -105,7 +115,6 @@ class ExportService {
     if (filesToExport.isEmpty) return null;
     
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-      // 桌面端：选择文件夹保存
       final outputDir = await FilePicker.platform.getDirectoryPath(
         dialogTitle: '选择导出文件夹',
       );
@@ -119,7 +128,6 @@ class ExportService {
       
       return outputDir;
     } else {
-      // 移动端：打包成 ZIP 分享
       final dir = await getApplicationDocumentsDirectory();
       final zipDir = Directory(path.join(dir.path, 'exports', 'batch'));
       await zipDir.create(recursive: true);
