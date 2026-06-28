@@ -1,6 +1,6 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:video_player/video_player.dart';
+import 'package:media_kit/media_kit.dart';
+import 'package:media_kit_video/media_kit_video.dart';
 
 class VideoPlayerWidget extends StatefulWidget {
   final String videoPath;
@@ -12,21 +12,22 @@ class VideoPlayerWidget extends StatefulWidget {
 }
 
 class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
-  late VideoPlayerController _controller;
+  late final Player _player;
+  late final VideoController _controller;
   bool _isInitialized = false;
   bool _hasError = false;
 
   @override
   void initState() {
     super.initState();
+    _player = Player();
+    _controller = VideoController(_player);
     _initPlayer();
   }
 
   Future<void> _initPlayer() async {
     try {
-      _controller = VideoPlayerController.file(File(widget.videoPath));
-      await _controller.initialize();
-      _controller.addListener(_onPlayerUpdate);
+      await _player.open(Media(widget.videoPath));
       if (mounted) {
         setState(() => _isInitialized = true);
       }
@@ -37,16 +38,9 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
     }
   }
 
-  void _onPlayerUpdate() {
-    if (_controller.value.hasError && !_hasError) {
-      setState(() => _hasError = true);
-    }
-  }
-
   @override
   void dispose() {
-    _controller.removeListener(_onPlayerUpdate);
-    _controller.dispose();
+    _player.dispose();
     super.dispose();
   }
 
@@ -69,16 +63,18 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
                 Container(
                   color: Colors.black,
                   child: Center(
-                    child: AspectRatio(
-                      aspectRatio: _controller.value.aspectRatio,
-                      child: VideoPlayer(_controller),
+                    child: Video(
+                      controller: _controller,
+                      controls: NoVideoControls,
                     ),
                   ),
                 ),
-                ValueListenableBuilder(
-                  valueListenable: _controller,
-                  builder: (context, VideoPlayerValue value, _) {
-                    if (!value.isPlaying) {
+                StreamBuilder<bool>(
+                  stream: _player.stream.playing,
+                  initialData: _player.state.playing,
+                  builder: (context, snapshot) {
+                    final isPlaying = snapshot.data ?? false;
+                    if (!isPlaying) {
                       return Icon(
                         Icons.play_arrow_rounded,
                         size: 64,
@@ -111,67 +107,87 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   }
 
   Widget _buildControls(BuildContext context) {
-    return ValueListenableBuilder(
-      valueListenable: _controller,
-      builder: (context, VideoPlayerValue value, _) {
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          color: Colors.grey[900],
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              VideoProgressIndicator(
-                _controller,
-                allowScrubbing: true,
-                colors: VideoProgressColors(
-                  playedColor: Theme.of(context).colorScheme.primary,
-                  bufferedColor: Colors.white24,
-                  backgroundColor: Colors.white12,
-                ),
-              ),
-              Row(
-                children: [
-                  IconButton(
-                    icon: Icon(
-                      value.isPlaying ? Icons.pause : Icons.play_arrow,
-                      color: Colors.white,
-                    ),
-                    onPressed: _togglePlay,
-                  ),
-                  Expanded(
-                    child: Text(
-                      '${_formatDuration(value.position)} / ${_formatDuration(value.duration)}',
-                      style: const TextStyle(color: Colors.white, fontSize: 12),
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      value.volume > 0 ? Icons.volume_up : Icons.volume_off,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                    onPressed: _toggleMute,
-                  ),
-                ],
-              ),
-            ],
-          ),
+    return StreamBuilder(
+      stream: _player.stream.playing,
+      initialData: _player.state.playing,
+      builder: (context, playingSnapshot) {
+        return StreamBuilder<Duration>(
+          stream: _player.stream.position,
+          initialData: _player.state.position,
+          builder: (context, positionSnapshot) {
+            return StreamBuilder<Duration>(
+              stream: _player.stream.duration,
+              initialData: _player.state.duration,
+              builder: (context, durationSnapshot) {
+                return StreamBuilder<double>(
+                  stream: _player.stream.volume,
+                  initialData: _player.state.volume,
+                  builder: (context, volumeSnapshot) {
+                    final isPlaying = playingSnapshot.data ?? false;
+                    final position = positionSnapshot.data ?? Duration.zero;
+                    final duration = durationSnapshot.data ?? Duration.zero;
+                    final volume = volumeSnapshot.data ?? 100.0;
+
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      color: Colors.grey[900],
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          LinearProgressIndicator(
+                            value: duration.inMilliseconds > 0
+                                ? position.inMilliseconds / duration.inMilliseconds
+                                : 0,
+                            backgroundColor: Colors.white12,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: Icon(
+                                  isPlaying ? Icons.pause : Icons.play_arrow,
+                                  color: Colors.white,
+                                ),
+                                onPressed: _togglePlay,
+                              ),
+                              Expanded(
+                                child: Text(
+                                  '${_formatDuration(position)} / ${_formatDuration(duration)}',
+                                  style: const TextStyle(color: Colors.white, fontSize: 12),
+                                ),
+                              ),
+                              IconButton(
+                                icon: Icon(
+                                  volume > 0 ? Icons.volume_up : Icons.volume_off,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                                onPressed: _toggleMute,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                );
+              },
+            );
+          },
         );
       },
     );
   }
 
   void _togglePlay() {
-    if (_controller.value.isPlaying) {
-      _controller.pause();
-    } else {
-      _controller.play();
-    }
+    _player.playOrPause();
   }
 
   void _toggleMute() {
-    final currentVol = _controller.value.volume;
-    _controller.setVolume(currentVol > 0 ? 0.0 : 1.0);
+    final currentVol = _player.state.volume;
+    _player.setVolume(currentVol > 0 ? 0.0 : 100.0);
   }
 
   String _formatDuration(Duration d) {

@@ -53,7 +53,10 @@ dependencies:
   archive: ^3.6.1
   
   # 视频播放
-  video_player: ^2.9.3
+  media_kit: ^1.2.6
+  media_kit_video: ^2.0.1
+  media_kit_libs_video: ^1.0.7
+  media_kit_libs_windows_video: ^1.0.11
 
 dev_dependencies:
   flutter_test:
