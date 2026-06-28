@@ -78,8 +78,31 @@ class ExportService {
     }
   }
   
-  Future<String?> batchExportNotes(List<Note> notes) async {
+  Future<String?> batchExportNotes(
+    List<Note> notes, {
+    bool exportNotes = true,
+    bool exportTranscripts = false,
+  }) async {
     if (notes.isEmpty) return null;
+    
+    final filesToExport = <String, String>{}; // fileName -> content
+    
+    for (final note in notes) {
+      if (exportNotes) {
+        final fileName = '${_sanitizeFileName(note.title)}.md';
+        filesToExport[fileName] = note.contentMd;
+      }
+      if (exportTranscripts) {
+        final fileName = '${_sanitizeFileName(note.title)}_转写.txt';
+        String text = note.contentMd;
+        if (note.transcriptJson != null && note.transcriptJson!.isNotEmpty) {
+          text = note.transcriptJson!;
+        }
+        filesToExport[fileName] = text;
+      }
+    }
+    
+    if (filesToExport.isEmpty) return null;
     
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       // 桌面端：选择文件夹保存
@@ -89,10 +112,9 @@ class ExportService {
       
       if (outputDir == null) return null;
       
-      for (final note in notes) {
-        final fileName = '${_sanitizeFileName(note.title)}.md';
-        final file = File(path.join(outputDir, fileName));
-        await file.writeAsString(note.contentMd);
+      for (final entry in filesToExport.entries) {
+        final file = File(path.join(outputDir, entry.key));
+        await file.writeAsString(entry.value);
       }
       
       return outputDir;
@@ -102,12 +124,10 @@ class ExportService {
       final zipDir = Directory(path.join(dir.path, 'exports', 'batch'));
       await zipDir.create(recursive: true);
       
-      // 创建 ZIP 文件
       final archive = Archive();
-      for (final note in notes) {
-        final fileName = '${_sanitizeFileName(note.title)}.md';
-        final content = note.contentMd.codeUnits;
-        archive.addFile(ArchiveFile(fileName, content.length, content));
+      for (final entry in filesToExport.entries) {
+        final content = entry.value.codeUnits;
+        archive.addFile(ArchiveFile(entry.key, content.length, content));
       }
       
       final zipEncoder = ZipEncoder();

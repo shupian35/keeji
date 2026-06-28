@@ -164,6 +164,45 @@ class VideoList extends ConsumerWidget {
   }
   
   Future<void> _batchExport(BuildContext context, WidgetRef ref, List<VideoRecord> videos, Set<String> selectedIds) async {
+    // 显示导出选项对话框
+    final exportType = await showDialog<String>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('选择导出内容'),
+        children: [
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, 'notes'),
+            child: const ListTile(
+              leading: Icon(Icons.note),
+              title: Text('导出笔记'),
+              subtitle: Text('导出 AI 生成的 Markdown 笔记'),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, 'transcripts'),
+            child: const ListTile(
+              leading: Icon(Icons.transcribe),
+              title: Text('导出转写原文'),
+              subtitle: Text('导出语音转写的原始文本'),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, 'both'),
+            child: const ListTile(
+              leading: Icon(Icons.select_all),
+              title: Text('全部导出'),
+              subtitle: Text('同时导出笔记和转写原文'),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+        ],
+      ),
+    );
+    
+    if (exportType == null) return;
+    
     final selectedVideos = videos.where((v) => selectedIds.contains(v.id)).toList();
     final db = ref.read(databaseProvider);
     final notes = <Note>[];
@@ -186,12 +225,24 @@ class VideoList extends ConsumerWidget {
     
     try {
       final exportService = ref.read(exportServiceProvider);
-      final result = await exportService.batchExportNotes(notes);
+      String? result;
+      
+      switch (exportType) {
+        case 'notes':
+          result = await exportService.batchExportNotes(notes, exportTranscripts: false);
+          break;
+        case 'transcripts':
+          result = await exportService.batchExportNotes(notes, exportNotes: false, exportTranscripts: true);
+          break;
+        case 'both':
+          result = await exportService.batchExportNotes(notes, exportNotes: true, exportTranscripts: true);
+          break;
+      }
       
       if (context.mounted) {
         if (result != null) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('已导出 ${notes.length} 个笔记到: $result')),
+            SnackBar(content: Text('已导出 ${notes.length} 个文件到: $result')),
           );
           ref.read(selectionModeProvider.notifier).state = false;
         }
