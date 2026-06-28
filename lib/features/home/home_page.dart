@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:keeji/features/home/widgets/video_list.dart';
+import 'package:keeji/l10n/app_localizations.dart';
 
 final selectionModeProvider = StateProvider<bool>((ref) => false);
 
@@ -11,10 +12,11 @@ class HomePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isSelectionMode = ref.watch(selectionModeProvider);
-    
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
-        title: isSelectionMode ? const Text('选择视频') : const Text('课记'),
+        title: isSelectionMode ? const Text('选择视频') : Text(l10n.appName),
         leading: isSelectionMode
             ? IconButton(
                 icon: const Icon(Icons.close),
@@ -30,11 +32,11 @@ class HomePage extends ConsumerWidget {
               onPressed: () {
                 ref.read(selectionModeProvider.notifier).state = true;
               },
-              tooltip: '批量操作',
+              tooltip: l10n.batchExport,
             ),
             PopupMenuButton<String>(
               icon: const Icon(Icons.add),
-              tooltip: '导入',
+              tooltip: l10n.import,
               onSelected: (value) {
                 switch (value) {
                   case 'video':
@@ -46,21 +48,19 @@ class HomePage extends ConsumerWidget {
                 }
               },
               itemBuilder: (context) => [
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'video',
                   child: ListTile(
-                    leading: Icon(Icons.video_library),
-                    title: Text('导入视频'),
-                    subtitle: Text('从视频提取音频转写并生成笔记'),
+                    leading: const Icon(Icons.video_library),
+                    title: Text(l10n.importVideo),
                     contentPadding: EdgeInsets.zero,
                   ),
                 ),
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'text',
                   child: ListTile(
-                    leading: Icon(Icons.text_snippet),
-                    title: Text('导入原文'),
-                    subtitle: Text('从文本文件直接生成笔记'),
+                    leading: const Icon(Icons.text_snippet),
+                    title: Text(l10n.importText),
                     contentPadding: EdgeInsets.zero,
                   ),
                 ),

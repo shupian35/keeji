@@ -7,6 +7,7 @@ import 'package:keeji/core/providers.dart';
 import 'package:keeji/core/constants.dart';
 import 'package:keeji/core/error_handler.dart';
 import 'package:keeji/features/home/home_page.dart';
+import 'package:keeji/l10n/app_localizations.dart';
 import 'package:keeji/models/video_record.dart';
 import 'package:keeji/models/note.dart';
 
@@ -54,6 +55,7 @@ class VideoList extends ConsumerWidget {
     final videosAsync = ref.watch(videoListProvider);
     final isSelectionMode = ref.watch(selectionModeProvider);
     final selectedIds = ref.watch(selectedIdsProvider);
+    final l10n = AppLocalizations.of(context)!;
     
     // 当退出选择模式时清空选择
     ref.listen(selectionModeProvider, (prev, next) {
@@ -64,7 +66,7 @@ class VideoList extends ConsumerWidget {
     
     return videosAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stack) => Center(child: Text('加载失败: $error')),
+      error: (error, stack) => Center(child: Text('${l10n.error}: $error')),
       data: (videos) {
         if (videos.isEmpty) {
           return Center(
@@ -78,12 +80,12 @@ class VideoList extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  '暂无视频',
+                  l10n.noVideos,
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '点击右上角 + 导入视频',
+                  l10n.importVideosHint,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
@@ -96,7 +98,7 @@ class VideoList extends ConsumerWidget {
         return Column(
           children: [
             if (isSelectionMode)
-              _buildSelectionBar(context, ref, videos, selectedIds),
+              _buildSelectionBar(context, ref, videos, selectedIds, l10n),
             Expanded(
               child: ListView.builder(
                 padding: const EdgeInsets.all(16),
@@ -127,14 +129,14 @@ class VideoList extends ConsumerWidget {
     );
   }
   
-  Widget _buildSelectionBar(BuildContext context, WidgetRef ref, List<VideoRecord> videos, Set<String> selectedIds) {
+  Widget _buildSelectionBar(BuildContext context, WidgetRef ref, List<VideoRecord> videos, Set<String> selectedIds, AppLocalizations l10n) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       color: Theme.of(context).colorScheme.surfaceContainerHighest,
       child: Row(
         children: [
           Text(
-            '已选择 ${selectedIds.length} 项',
+            l10n.selectedItems(selectedIds.length),
             style: Theme.of(context).textTheme.titleSmall,
           ),
           const Spacer(),
@@ -142,66 +144,66 @@ class VideoList extends ConsumerWidget {
             onPressed: () {
               ref.read(selectedIdsProvider.notifier).state = videos.map((v) => v.id).toSet();
             },
-            child: const Text('全选'),
+            child: Text(l10n.selectAll),
           ),
           TextButton(
             onPressed: () {
               ref.read(selectedIdsProvider.notifier).state = {};
             },
-            child: const Text('取消全选'),
+            child: Text(l10n.deselectAll),
           ),
           const SizedBox(width: 8),
           OutlinedButton.icon(
             onPressed: selectedIds.isNotEmpty
-                ? () => _batchDelete(context, ref, videos, selectedIds)
+                ? () => _batchDelete(context, ref, videos, selectedIds, l10n)
                 : null,
             icon: const Icon(Icons.delete_outline),
-            label: const Text('批量删除'),
+            label: Text(l10n.batchDelete),
           ),
           const SizedBox(width: 8),
           FilledButton.icon(
             onPressed: selectedIds.isNotEmpty
-                ? () => _batchExport(context, ref, videos, selectedIds)
+                ? () => _batchExport(context, ref, videos, selectedIds, l10n)
                 : null,
             icon: const Icon(Icons.archive),
-            label: const Text('批量导出'),
+            label: Text(l10n.batchExport),
           ),
         ],
       ),
     );
   }
   
-  Future<void> _batchExport(BuildContext context, WidgetRef ref, List<VideoRecord> videos, Set<String> selectedIds) async {
+  Future<void> _batchExport(BuildContext context, WidgetRef ref, List<VideoRecord> videos, Set<String> selectedIds, AppLocalizations l10n) async {
     // 显示导出选项对话框
     final exportType = await showDialog<String>(
       context: context,
       builder: (ctx) => SimpleDialog(
-        title: const Text('选择导出内容'),
+        title: Text(l10n.selectExportContent),
         children: [
           SimpleDialogOption(
             onPressed: () => Navigator.pop(ctx, 'notes'),
-            child: const ListTile(
-              leading: Icon(Icons.note),
-              title: Text('导出笔记'),
-              subtitle: Text('导出 AI 生成的 Markdown 笔记'),
+            child: ListTile(
+              leading: const Icon(Icons.note),
+              title: Text(l10n.exportNotes),
+              subtitle: Text(l10n.exportNotesDesc),
               contentPadding: EdgeInsets.zero,
             ),
           ),
           SimpleDialogOption(
             onPressed: () => Navigator.pop(ctx, 'transcripts'),
-            child: const ListTile(
-              leading: Icon(Icons.transcribe),
-              title: Text('导出转写原文'),
-              subtitle: Text('导出语音转写的原始文本'),
+            child: ListTile(
+              leading: const Icon(Icons.transcribe),
+              title: Text(l10n.exportTranscripts),
+              subtitle: Text(l10n.exportTranscriptsDesc),
               contentPadding: EdgeInsets.zero,
             ),
           ),
           SimpleDialogOption(
             onPressed: () => Navigator.pop(ctx, 'both'),
-            child: const ListTile(
-              leading: Icon(Icons.select_all),
-              title: Text('全部导出'),
-              subtitle: Text('同时导出笔记和转写原文'),
+            child: ListTile(
+              leading: const Icon(Icons.select_all),
+              title: Text(l10n.exportAll),
+              subtitle: Text(l10n.exportAllDesc),
               contentPadding: EdgeInsets.zero,
             ),
           ),
@@ -227,7 +229,7 @@ class VideoList extends ConsumerWidget {
     if (notes.isEmpty) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('选中的视频没有笔记')),
+          SnackBar(content: Text(l10n.noNotesToExport)),
         );
       }
       return;
@@ -252,19 +254,19 @@ class VideoList extends ConsumerWidget {
       if (context.mounted) {
         if (result != null) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('已导出 ${notes.length} 个文件到: $result')),
+            SnackBar(content: Text(l10n.exportedTo(notes.length, result))),
           );
           ref.read(selectionModeProvider.notifier).state = false;
         }
       }
     } catch (e) {
       if (context.mounted) {
-        ErrorHandler.showError(context, e, title: '批量导出失败');
+        ErrorHandler.showError(context, e, title: l10n.batchExportFailed);
       }
     }
   }
   
-  Future<void> _batchDelete(BuildContext context, WidgetRef ref, List<VideoRecord> videos, Set<String> selectedIds) async {
+  Future<void> _batchDelete(BuildContext context, WidgetRef ref, List<VideoRecord> videos, Set<String> selectedIds, AppLocalizations l10n) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -272,19 +274,19 @@ class VideoList extends ConsumerWidget {
           Icons.warning_amber,
           color: Theme.of(ctx).colorScheme.error,
         ),
-        title: const Text('确认批量删除'),
-        content: Text('确定要删除选中的 ${selectedIds.length} 个视频吗？相关的笔记也会被删除，此操作不可撤销。'),
+        title: Text(l10n.confirmBatchDelete),
+        content: Text(l10n.confirmBatchDeleteMessage(selectedIds.length)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('取消'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(ctx).colorScheme.error,
             ),
-            child: const Text('删除'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -314,7 +316,7 @@ class VideoList extends ConsumerWidget {
     
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('已删除 $deletedCount 个视频')),
+        SnackBar(content: Text(l10n.exportedTo(deletedCount, ''))),
       );
     }
   }
@@ -338,6 +340,8 @@ class VideoCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
@@ -352,29 +356,29 @@ class VideoCard extends ConsumerWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        subtitle: _buildSubtitle(context),
+        subtitle: _buildSubtitle(context, l10n),
         trailing: isSelectionMode
             ? null
             : PopupMenuButton<String>(
-                onSelected: (value) => _handleAction(context, ref, value),
+                onSelected: (value) => _handleAction(context, ref, value, l10n),
                 itemBuilder: (context) => [
                   if (video.status == VideoStatus.done)
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'view',
-                      child: Text('查看笔记'),
+                      child: Text(l10n.viewNotes),
                     ),
                   if (video.status == VideoStatus.failed)
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'retry',
-                      child: Text('重试'),
+                      child: Text(l10n.retry),
                     ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'relocate',
-                    child: Text('更新路径'),
+                    child: Text(l10n.updatePath),
                   ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'delete',
-                    child: Text('删除'),
+                    child: Text(l10n.delete),
                   ),
                 ],
               ),
@@ -419,19 +423,19 @@ class VideoCard extends ConsumerWidget {
     }
   }
   
-  Widget? _buildSubtitle(BuildContext context) {
+  Widget? _buildSubtitle(BuildContext context, AppLocalizations l10n) {
     switch (video.status) {
       case VideoStatus.pending:
-        return const Text('等待处理');
+        return Text(l10n.pending);
       case VideoStatus.processing:
-        return Text('处理中 ${(video.progress * 100).toInt()}%');
+        return Text(l10n.processing((video.progress * 100).toInt()));
       case VideoStatus.done:
         return Text(
           '${video.createdAt.year}-${video.createdAt.month.toString().padLeft(2, '0')}-${video.createdAt.day.toString().padLeft(2, '0')}',
         );
       case VideoStatus.failed:
         return Text(
-          video.error ?? '处理失败',
+          video.error ?? l10n.failed,
           style: TextStyle(color: Theme.of(context).colorScheme.error),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
@@ -439,19 +443,19 @@ class VideoCard extends ConsumerWidget {
     }
   }
   
-  void _handleAction(BuildContext context, WidgetRef ref, String action) {
+  void _handleAction(BuildContext context, WidgetRef ref, String action, AppLocalizations l10n) {
     switch (action) {
       case 'view':
         _viewNote(context);
         break;
       case 'retry':
-        _retryProcessing(context, ref);
+        _retryProcessing(context, ref, l10n);
         break;
       case 'relocate':
-        _relocateVideo(context, ref);
+        _relocateVideo(context, ref, l10n);
         break;
       case 'delete':
-        _deleteVideo(context, ref);
+        _deleteVideo(context, ref, l10n);
         break;
     }
   }
@@ -460,7 +464,7 @@ class VideoCard extends ConsumerWidget {
     context.push('/viewer/${video.id}');
   }
   
-  Future<void> _retryProcessing(BuildContext context, WidgetRef ref) async {
+  Future<void> _retryProcessing(BuildContext context, WidgetRef ref, AppLocalizations l10n) async {
     try {
       final processor = ref.read(videoProcessorProvider);
       await processor.retryProcessing(video: video);
@@ -470,14 +474,14 @@ class VideoCard extends ConsumerWidget {
         ErrorHandler.showErrorWithRetry(
           context,
           e,
-          title: '重试失败',
-          onRetry: () => _retryProcessing(context, ref),
+          title: l10n.retryFailed,
+          onRetry: () => _retryProcessing(context, ref, l10n),
         );
       }
     }
   }
   
-  Future<void> _relocateVideo(BuildContext context, WidgetRef ref) async {
+  Future<void> _relocateVideo(BuildContext context, WidgetRef ref, AppLocalizations l10n) async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: AppConstants.videoExtensions
@@ -498,26 +502,26 @@ class VideoCard extends ConsumerWidget {
       
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('路径已更新')),
+          SnackBar(content: Text(l10n.pathUpdated)),
         );
       }
     } catch (e) {
       if (context.mounted) {
-        ErrorHandler.showError(context, e, title: '更新失败');
+        ErrorHandler.showError(context, e, title: l10n.updateFailed);
       }
     }
   }
   
-  void _deleteVideo(BuildContext context, WidgetRef ref) {
+  void _deleteVideo(BuildContext context, WidgetRef ref, AppLocalizations l10n) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('确认删除'),
-        content: const Text('确定要删除这个视频吗？相关的笔记也会被删除。'),
+        title: Text(l10n.confirmDelete),
+        content: Text(l10n.confirmDeleteMessage),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () async {
@@ -535,7 +539,7 @@ class VideoCard extends ConsumerWidget {
                 Navigator.pop(context);
               }
             },
-            child: const Text('删除'),
+            child: Text(l10n.delete),
           ),
         ],
       ),

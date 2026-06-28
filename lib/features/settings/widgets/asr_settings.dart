@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:keeji/core/providers.dart';
+import 'package:keeji/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _AsrPreset {
@@ -17,7 +18,7 @@ class _AsrPreset {
   });
 }
 
-const _asrPresets = [
+final _asrPresets = [
   _AsrPreset(
     id: 'siliconflow',
     name: 'SiliconFlow',
@@ -139,14 +140,16 @@ class _AsrSettingsState extends ConsumerState<AsrSettings> {
       return const Center(child: CircularProgressIndicator());
     }
     
+    final l10n = AppLocalizations.of(context)!;
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         DropdownButtonFormField<int>(
           initialValue: _selectedPreset,
-          decoration: const InputDecoration(
-            labelText: '服务商预设',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: l10n.presetProvider,
+            border: const OutlineInputBorder(),
           ),
           items: _asrPresets.asMap().entries.map((entry) {
             return DropdownMenuItem(
@@ -159,36 +162,36 @@ class _AsrSettingsState extends ConsumerState<AsrSettings> {
         const SizedBox(height: 12),
         TextField(
           controller: _apiKeyController,
-          decoration: const InputDecoration(
-            labelText: 'API Key',
-            hintText: '输入 ASR API Key',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: l10n.apiKey,
+            hintText: l10n.apiKey,
+            border: const OutlineInputBorder(),
           ),
           obscureText: true,
         ),
         const SizedBox(height: 12),
         TextField(
           controller: _baseUrlController,
-          decoration: const InputDecoration(
-            labelText: 'API 地址',
+          decoration: InputDecoration(
+            labelText: l10n.apiBaseUrl,
             hintText: 'https://api.example.com/v1',
-            border: OutlineInputBorder(),
+            border: const OutlineInputBorder(),
           ),
         ),
         const SizedBox(height: 12),
         TextField(
           controller: _modelController,
-          decoration: const InputDecoration(
-            labelText: '模型',
-            hintText: '输入模型名称',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: l10n.model,
+            hintText: l10n.model,
+            border: const OutlineInputBorder(),
           ),
         ),
         if (_selectedPreset == 1)
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Text(
-              '提示: 小米 MiMo ASR 使用 chat completions 接口，音频会自动转为 base64',
+              l10n.asrPresetHint,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
@@ -200,7 +203,7 @@ class _AsrSettingsState extends ConsumerState<AsrSettings> {
             Expanded(
               child: ElevatedButton(
                 onPressed: _saveSettings,
-                child: const Text('保存设置'),
+                child: Text(l10n.saveSettings),
               ),
             ),
             const SizedBox(width: 12),
@@ -214,7 +217,7 @@ class _AsrSettingsState extends ConsumerState<AsrSettings> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.wifi_tethering),
-                label: Text(_isTesting ? '测试中...' : '测试连接'),
+                label: Text(_isTesting ? l10n.testing : l10n.testConnection),
               ),
             ),
           ],
@@ -224,6 +227,7 @@ class _AsrSettingsState extends ConsumerState<AsrSettings> {
   }
   
   Future<void> _saveSettings() async {
+    final l10n = AppLocalizations.of(context)!;
     final prefs = await SharedPreferences.getInstance();
     final presetId = _asrPresets[_selectedPreset].id;
     
@@ -250,15 +254,17 @@ class _AsrSettingsState extends ConsumerState<AsrSettings> {
     
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('ASR 设置已保存')),
+        SnackBar(content: Text(l10n.settingsSaved)),
       );
     }
   }
   
   Future<void> _testConnection() async {
+    final l10n = AppLocalizations.of(context)!;
+    
     if (_apiKeyController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请先输入 API Key')),
+        SnackBar(content: Text(l10n.pleaseEnterApiKey)),
       );
       return;
     }
@@ -279,17 +285,17 @@ class _AsrSettingsState extends ConsumerState<AsrSettings> {
         if (result == 'success') {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('连接成功'),
+              content: Text(l10n.connectionSuccess),
               backgroundColor: Theme.of(context).colorScheme.primaryContainer,
             ),
           );
         } else {
-          _showErrorDialog(result);
+          _showErrorDialog(result, l10n);
         }
       }
     } catch (e) {
       if (mounted) {
-        _showErrorDialog('连接失败: $e');
+        _showErrorDialog('${l10n.connectionFailed}: $e', l10n);
       }
     } finally {
       if (mounted) {
@@ -298,7 +304,7 @@ class _AsrSettingsState extends ConsumerState<AsrSettings> {
     }
   }
   
-  void _showErrorDialog(String message) {
+  void _showErrorDialog(String message, AppLocalizations l10n) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -306,7 +312,7 @@ class _AsrSettingsState extends ConsumerState<AsrSettings> {
           Icons.error_outline,
           color: Theme.of(ctx).colorScheme.error,
         ),
-        title: const Text('连接测试失败'),
+        title: Text(l10n.connectionFailed),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -321,23 +327,23 @@ class _AsrSettingsState extends ConsumerState<AsrSettings> {
             const Divider(),
             const SizedBox(height: 8),
             Text(
-              '当前配置：',
+              l10n.currentConfig,
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 4),
-            Text('API 地址: ${_baseUrlController.text}'),
-            Text('模型: ${_modelController.text}'),
+            Text('${l10n.apiBaseUrl}: ${_baseUrlController.text}'),
+            Text('${l10n.model}: ${_modelController.text}'),
             const SizedBox(height: 12),
-            const Text('请检查：'),
-            const Text('• API Key 是否正确'),
-            const Text('• API 地址格式是否正确'),
-            const Text('• 网络连接是否正常'),
+            Text(l10n.checkConfig),
+            Text('• ${l10n.checkApiKey}'),
+            Text('• ${l10n.checkApiUrl}'),
+            Text('• ${l10n.checkNetwork}'),
           ],
         ),
         actions: [
           FilledButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('确定'),
+            child: Text(l10n.confirm),
           ),
         ],
       ),

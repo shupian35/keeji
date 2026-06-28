@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:keeji/l10n/app_localizations.dart';
 
 class TranscriptPanel extends StatelessWidget {
   final String? transcriptText;
@@ -7,6 +8,8 @@ class TranscriptPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
     if (transcriptText == null || transcriptText!.isEmpty) {
       return Center(
         child: Column(
@@ -18,10 +21,10 @@ class TranscriptPanel extends StatelessWidget {
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
             const SizedBox(height: 16),
-            const Text('暂无转写内容'),
+            Text(l10n.noTranscript),
             const SizedBox(height: 8),
             Text(
-              '视频处理完成后会显示转写原文',
+              l10n.transcriptWillAppear,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
@@ -41,7 +44,7 @@ class TranscriptPanel extends StatelessWidget {
               const Icon(Icons.transcribe, size: 20),
               const SizedBox(width: 8),
               Text(
-                '转写原文',
+                l10n.transcriptOriginal,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
             ],

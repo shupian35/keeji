@@ -5,6 +5,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:uuid/uuid.dart';
 import 'package:keeji/core/providers.dart';
 import 'package:keeji/core/error_handler.dart';
+import 'package:keeji/l10n/app_localizations.dart';
 import 'package:keeji/models/video_record.dart';
 import 'package:keeji/models/note.dart';
 import 'package:keeji/core/constants.dart';
@@ -38,14 +39,16 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
     return Scaffold(
       appBar: AppBar(
-        title: Text(_importType == ImportType.video ? '导入视频' : '导入原文'),
+        title: Text(_importType == ImportType.video ? l10n.importVideo : l10n.importText),
         actions: [
           TextButton.icon(
             onPressed: _isImporting ? null : _toggleImportType,
             icon: Icon(_importType == ImportType.video ? Icons.text_snippet : Icons.video_library),
-            label: Text(_importType == ImportType.video ? '切换到导入原文' : '切换到导入视频'),
+            label: Text(_importType == ImportType.video ? l10n.switchToTextImport : l10n.switchToVideoImport),
           ),
         ],
       ),
@@ -54,14 +57,14 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildFilePicker(),
+            _buildFilePicker(l10n),
             const SizedBox(height: 24),
             if (_selectedFiles.isNotEmpty) ...[
-              _buildFileList(),
+              _buildFileList(l10n),
               const SizedBox(height: 16),
-              _buildOptions(),
+              _buildOptions(l10n),
               const SizedBox(height: 24),
-              _buildImportButton(),
+              _buildImportButton(l10n),
             ],
           ],
         ),
@@ -76,7 +79,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     });
   }
   
-  Widget _buildFilePicker() {
+  Widget _buildFilePicker(AppLocalizations l10n) {
     final isVideo = _importType == ImportType.video;
     final extensions = isVideo
         ? AppConstants.videoExtensions.map((e) => e.replaceFirst('.', '')).toList()
@@ -103,12 +106,12 @@ class _ImportPageState extends ConsumerState<ImportPage> {
           ),
           const SizedBox(height: 16),
           Text(
-            isVideo ? '选择视频文件' : '选择原文文件',
+            isVideo ? l10n.selectVideoFiles : l10n.selectTextFiles,
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
           Text(
-            '支持 ${extensions.join(", ")}',
+            l10n.supportedFormats(extensions.join(", ")),
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
@@ -117,14 +120,14 @@ class _ImportPageState extends ConsumerState<ImportPage> {
           ElevatedButton.icon(
             onPressed: _isImporting ? null : _pickFiles,
             icon: const Icon(Icons.folder_open),
-            label: const Text('选择文件'),
+            label: Text(l10n.selectFiles),
           ),
         ],
       ),
     );
   }
   
-  Widget _buildFileList() {
+  Widget _buildFileList(AppLocalizations l10n) {
     final isVideo = _importType == ImportType.video;
     
     return Expanded(
@@ -132,7 +135,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '已选择 ${_selectedFiles.length} 个文件',
+            l10n.selectedFiles(_selectedFiles.length),
             style: Theme.of(context).textTheme.titleSmall,
           ),
           const SizedBox(height: 8),
@@ -162,7 +165,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     );
   }
   
-  Widget _buildOptions() {
+  Widget _buildOptions(AppLocalizations l10n) {
     final isVideo = _importType == ImportType.video;
     
     return Card(
@@ -176,7 +179,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(isVideo ? '导入后立即开始处理' : '导入后立即生成笔记'),
+              child: Text(isVideo ? l10n.importAfterSelect : l10n.importTextAfterSelect),
             ),
             Switch(
               value: _startProcessing,
@@ -192,7 +195,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     );
   }
   
-  Widget _buildImportButton() {
+  Widget _buildImportButton(AppLocalizations l10n) {
     final isVideo = _importType == ImportType.video;
     
     if (_isImporting) {
@@ -202,7 +205,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
             value: _importTotal > 0 ? _importProgress / _importTotal : null,
           ),
           const SizedBox(height: 8),
-          Text('导入中 $_importProgress/$_importTotal'),
+          Text('${l10n.importing} $_importProgress/$_importTotal'),
         ],
       );
     }
@@ -211,8 +214,8 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       onPressed: _importFiles,
       icon: const Icon(Icons.add),
       label: Text(isVideo
-          ? '导入 ${_selectedFiles.length} 个视频'
-          : '导入 ${_selectedFiles.length} 个原文'),
+          ? l10n.importVideos(_selectedFiles.length)
+          : l10n.importTexts(_selectedFiles.length)),
     );
   }
   
@@ -244,6 +247,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   }
   
   Future<void> _importVideoFiles() async {
+    final l10n = AppLocalizations.of(context)!;
     bool shouldProcess = _startProcessing;
     
     if (shouldProcess) {
@@ -252,16 +256,16 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         final importOnly = await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: const Text('是否只导入？'),
-            content: const Text('API 配置不完整，无法自动处理视频。\n是否只导入视频，稍后再处理？'),
+            title: Text(l10n.importOnly),
+            content: Text(l10n.importOnlyHint),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('取消'),
+                child: Text(l10n.cancel),
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('只导入'),
+                child: Text(l10n.importOnly),
               ),
             ],
           ),
@@ -317,19 +321,20 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('成功导入 ${videos.length} 个视频')),
+          SnackBar(content: Text(l10n.importSuccess(videos.length))),
         );
         Navigator.pop(context);
       }
     } catch (e) {
       setState(() => _isImporting = false);
       if (mounted) {
-        ErrorHandler.showError(context, e, title: '导入失败');
+        ErrorHandler.showError(context, e, title: l10n.importFailed);
       }
     }
   }
   
   Future<void> _importTextFiles() async {
+    final l10n = AppLocalizations.of(context)!;
     bool shouldGenerate = _startProcessing;
     
     if (shouldGenerate) {
@@ -338,16 +343,16 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         final importOnly = await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: const Text('是否只导入？'),
-            content: const Text('LLM 配置不完整，无法自动生成笔记。\n是否只导入原文，稍后再生成？'),
+            title: Text(l10n.importOnly),
+            content: Text(l10n.importOnlyHint),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('取消'),
+                child: Text(l10n.cancel),
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('只导入'),
+                child: Text(l10n.importOnly),
               ),
             ],
           ),
@@ -433,14 +438,14 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('成功导入 $successCount 个文件')),
+          SnackBar(content: Text(l10n.importSuccess(successCount))),
         );
         Navigator.pop(context);
       }
     } catch (e) {
       setState(() => _isImporting = false);
       if (mounted) {
-        ErrorHandler.showError(context, e, title: '导入失败');
+        ErrorHandler.showError(context, e, title: l10n.importFailed);
       }
     }
   }

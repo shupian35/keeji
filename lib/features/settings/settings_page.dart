@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:keeji/app.dart';
 import 'package:keeji/core/theme_provider.dart';
 import 'package:keeji/features/settings/widgets/asr_settings.dart';
 import 'package:keeji/features/settings/widgets/llm_settings.dart';
+import 'package:keeji/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsPage extends ConsumerWidget {
@@ -10,37 +12,46 @@ class SettingsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('设置'),
+        title: Text(l10n.settings),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           _buildSection(
             context,
-            title: '外观',
+            title: l10n.appearance,
             icon: Icons.palette,
             child: const _ThemeSettings(),
           ),
           const SizedBox(height: 16),
           _buildSection(
             context,
-            title: '语音转写 (ASR)',
+            title: l10n.settings,
+            icon: Icons.language,
+            child: const _LanguageSettings(),
+          ),
+          const SizedBox(height: 16),
+          _buildSection(
+            context,
+            title: l10n.asrSettings,
             icon: Icons.mic,
             child: const AsrSettings(),
           ),
           const SizedBox(height: 16),
           _buildSection(
             context,
-            title: '笔记生成 (LLM)',
+            title: l10n.llmSettings,
             icon: Icons.auto_awesome,
             child: const LlmSettings(),
           ),
           const SizedBox(height: 16),
           _buildSection(
             context,
-            title: '其他设置',
+            title: l10n.otherSettings,
             icon: Icons.tune,
             child: const _OtherSettings(),
           ),
@@ -48,7 +59,7 @@ class SettingsPage extends ConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildSection(
     BuildContext context, {
     required String title,
@@ -86,13 +97,14 @@ class _ThemeSettings extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
-    
+    final l10n = AppLocalizations.of(context)!;
+
     return Column(
       children: [
         _buildThemeOption(
           context,
           ref,
-          title: '跟随系统',
+          title: l10n.followSystem,
           icon: Icons.brightness_auto,
           mode: ThemeMode.system,
           isSelected: themeMode == ThemeMode.system,
@@ -100,7 +112,7 @@ class _ThemeSettings extends ConsumerWidget {
         _buildThemeOption(
           context,
           ref,
-          title: '浅色模式',
+          title: l10n.lightMode,
           icon: Icons.light_mode,
           mode: ThemeMode.light,
           isSelected: themeMode == ThemeMode.light,
@@ -108,7 +120,7 @@ class _ThemeSettings extends ConsumerWidget {
         _buildThemeOption(
           context,
           ref,
-          title: '深色模式',
+          title: l10n.darkMode,
           icon: Icons.dark_mode,
           mode: ThemeMode.dark,
           isSelected: themeMode == ThemeMode.dark,
@@ -116,7 +128,7 @@ class _ThemeSettings extends ConsumerWidget {
       ],
     );
   }
-  
+
   Widget _buildThemeOption(
     BuildContext context,
     WidgetRef ref, {
@@ -144,6 +156,95 @@ class _ThemeSettings extends ConsumerWidget {
   }
 }
 
+class _LanguageSettings extends ConsumerWidget {
+  const _LanguageSettings();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final locale = ref.watch(localeProvider);
+
+    final currentLanguageCode = locale?.languageCode ?? 'zh';
+    final currentCountryCode = locale?.countryCode;
+
+    String currentLanguage;
+    if (currentLanguageCode == 'zh' && currentCountryCode == 'TW') {
+      currentLanguage = '繁體中文';
+    } else if (currentLanguageCode == 'en') {
+      currentLanguage = 'English';
+    } else {
+      currentLanguage = '简体中文';
+    }
+
+    return Column(
+      children: [
+        ListTile(
+          leading: const Icon(Icons.language),
+          title: Text(currentLanguage),
+          trailing: const Icon(Icons.arrow_drop_down),
+          onTap: () => _showLanguageDialog(context, ref),
+        ),
+      ],
+    );
+  }
+
+  void _showLanguageDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('选择语言 / Select Language'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildLanguageOption(
+              ctx,
+              ref,
+              title: '简体中文',
+              locale: const Locale('zh'),
+            ),
+            _buildLanguageOption(
+              ctx,
+              ref,
+              title: '繁體中文',
+              locale: const Locale('zh', 'TW'),
+            ),
+            _buildLanguageOption(
+              ctx,
+              ref,
+              title: 'English',
+              locale: const Locale('en'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLanguageOption(
+    BuildContext context,
+    WidgetRef ref, {
+    required String title,
+    required Locale locale,
+  }) {
+    final currentLocale = ref.watch(localeProvider);
+    final isSelected = currentLocale?.languageCode == locale.languageCode &&
+        currentLocale?.countryCode == locale.countryCode;
+
+    return ListTile(
+      title: Text(title),
+      trailing: isSelected
+          ? Icon(
+              Icons.check_circle,
+              color: Theme.of(context).colorScheme.primary,
+            )
+          : null,
+      onTap: () {
+        ref.read(localeProvider.notifier).setLocale(locale);
+        Navigator.pop(context);
+      },
+    );
+  }
+}
+
 class _OtherSettings extends ConsumerStatefulWidget {
   const _OtherSettings();
 
@@ -154,13 +255,13 @@ class _OtherSettings extends ConsumerStatefulWidget {
 class _OtherSettingsState extends ConsumerState<_OtherSettings> {
   bool _audioChunkEnabled = true;
   bool _isLoading = true;
-  
+
   @override
   void initState() {
     super.initState();
     _loadSettings();
   }
-  
+
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -168,7 +269,7 @@ class _OtherSettingsState extends ConsumerState<_OtherSettings> {
       _isLoading = false;
     });
   }
-  
+
   Future<void> _saveSettings(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('audio_chunk_enabled', value);
@@ -182,12 +283,14 @@ class _OtherSettingsState extends ConsumerState<_OtherSettings> {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
-    
+
+    final l10n = AppLocalizations.of(context)!;
+
     return Column(
       children: [
         SwitchListTile(
-          title: const Text('启用长音频分段'),
-          subtitle: const Text('长音频自动在静音处切分后转写'),
+          title: Text(l10n.enableAudioChunking),
+          subtitle: Text(l10n.enableAudioChunkingHint),
           value: _audioChunkEnabled,
           onChanged: _saveSettings,
         ),

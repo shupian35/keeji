@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:keeji/core/providers.dart';
 import 'package:keeji/core/error_handler.dart';
+import 'package:keeji/l10n/app_localizations.dart';
 import 'package:keeji/models/video_record.dart';
 import 'package:keeji/models/note.dart';
 import 'package:keeji/features/viewer/widgets/video_player_widget.dart';
@@ -36,20 +37,21 @@ class _ViewerPageState extends ConsumerState<ViewerPage> {
   Widget build(BuildContext context) {
     final videoAsync = ref.watch(videoProvider(widget.videoId));
     final noteAsync = ref.watch(noteProvider(widget.videoId));
+    final l10n = AppLocalizations.of(context)!;
     
     return videoAsync.when(
       loading: () => const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       ),
       error: (error, stack) => Scaffold(
-        appBar: AppBar(title: const Text('错误')),
-        body: Center(child: Text('加载失败: $error')),
+        appBar: AppBar(title: Text(l10n.error)),
+        body: Center(child: Text('${l10n.error}: $error')),
       ),
       data: (video) {
         if (video == null) {
           return Scaffold(
-            appBar: AppBar(title: const Text('未找到')),
-            body: const Center(child: Text('视频记录不存在')),
+            appBar: AppBar(title: Text(l10n.error)),
+            body: Center(child: Text(l10n.error)),
           );
         }
         
@@ -60,17 +62,17 @@ class _ViewerPageState extends ConsumerState<ViewerPage> {
           ),
           error: (error, stack) => Scaffold(
             appBar: AppBar(title: Text(video.filename)),
-            body: Center(child: Text('加载笔记失败: $error')),
+            body: Center(child: Text('${l10n.error}: $error')),
           ),
           data: (note) {
-            return _buildContent(video, note);
+            return _buildContent(video, note, l10n);
           },
         );
       },
     );
   }
   
-  Widget _buildContent(VideoRecord video, Note? note) {
+  Widget _buildContent(VideoRecord video, Note? note, AppLocalizations l10n) {
     return Scaffold(
       appBar: AppBar(
         title: Text(note?.title ?? video.filename),
@@ -78,28 +80,28 @@ class _ViewerPageState extends ConsumerState<ViewerPage> {
           if (note != null)
             IconButton(
               icon: const Icon(Icons.copy),
-              onPressed: () => _copyNote(note),
-              tooltip: '复制笔记',
+              onPressed: () => _copyNote(note, l10n),
+              tooltip: l10n.copyNote,
             ),
           IconButton(
             icon: Icon(_showTranscript ? Icons.description : Icons.description_outlined),
             onPressed: () => setState(() => _showTranscript = !_showTranscript),
-            tooltip: '显示转写原文',
+            tooltip: l10n.transcriptOriginal,
           ),
           PopupMenuButton<String>(
-            onSelected: (value) => _handleAction(value, video, note),
+            onSelected: (value) => _handleAction(value, video, note, l10n),
             itemBuilder: (context) => [
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'export_md',
-                child: Text('导出笔记'),
+                child: Text(l10n.exportNote),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'export_txt',
-                child: Text('导出转写'),
+                child: Text(l10n.exportTranscript),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'regenerate',
-                child: Text('重新生成'),
+                child: Text(l10n.regenerate),
               ),
             ],
           ),
@@ -125,10 +127,10 @@ class _ViewerPageState extends ConsumerState<ViewerPage> {
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                         const SizedBox(height: 16),
-                        const Text('暂无笔记'),
+                        Text(l10n.noNote),
                         const SizedBox(height: 8),
                         ElevatedButton.icon(
-                          onPressed: _isRegenerating ? null : () => _regenerate(video),
+                          onPressed: _isRegenerating ? null : () => _regenerate(video, l10n),
                           icon: _isRegenerating
                               ? const SizedBox(
                                   width: 16,
@@ -136,7 +138,7 @@ class _ViewerPageState extends ConsumerState<ViewerPage> {
                                   child: CircularProgressIndicator(strokeWidth: 2),
                                 )
                               : const Icon(Icons.refresh),
-                          label: Text(_isRegenerating ? '生成中...' : '生成笔记'),
+                          label: Text(_isRegenerating ? l10n.generating : l10n.generateNote),
                         ),
                       ],
                     ),
@@ -157,69 +159,69 @@ class _ViewerPageState extends ConsumerState<ViewerPage> {
     );
   }
   
-  Future<void> _handleAction(String action, VideoRecord video, Note? note) async {
+  Future<void> _handleAction(String action, VideoRecord video, Note? note, AppLocalizations l10n) async {
     switch (action) {
       case 'export_md':
         if (note != null) {
-          await _exportMarkdown(note, video.filename);
+          await _exportMarkdown(note, video.filename, l10n);
         }
         break;
       case 'export_txt':
         if (note != null) {
-          await _exportTranscript(note, video.filename);
+          await _exportTranscript(note, video.filename, l10n);
         }
         break;
       case 'regenerate':
-        await _regenerate(video);
+        await _regenerate(video, l10n);
         break;
     }
   }
   
-  void _copyNote(Note note) {
+  void _copyNote(Note note, AppLocalizations l10n) {
     Clipboard.setData(ClipboardData(text: note.contentMd));
     
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('笔记已复制到剪贴板')),
+        SnackBar(content: Text(l10n.noteCopied)),
       );
     }
   }
   
-  Future<void> _exportMarkdown(Note note, String videoFilename) async {
+  Future<void> _exportMarkdown(Note note, String videoFilename, AppLocalizations l10n) async {
     try {
       final exportService = ref.read(exportServiceProvider);
       final outputPath = await exportService.exportNoteAsMarkdown(note, sourceFileName: videoFilename);
       
       if (outputPath != null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('笔记已保存到: $outputPath')),
+          SnackBar(content: Text('${l10n.exportNote}: $outputPath')),
         );
       }
     } catch (e) {
       if (mounted) {
-        ErrorHandler.showError(context, e, title: '导出失败');
+        ErrorHandler.showError(context, e, title: l10n.exportFailed);
       }
     }
   }
   
-  Future<void> _exportTranscript(Note note, String videoFilename) async {
+  Future<void> _exportTranscript(Note note, String videoFilename, AppLocalizations l10n) async {
     try {
       final exportService = ref.read(exportServiceProvider);
       final outputPath = await exportService.exportTranscriptAsText(note, sourceFileName: videoFilename);
       
       if (outputPath != null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('转写原文已保存到: $outputPath')),
+          SnackBar(content: Text('${l10n.exportTranscript}: $outputPath')),
         );
       }
     } catch (e) {
       if (mounted) {
-        ErrorHandler.showError(context, e, title: '导出失败');
+        ErrorHandler.showError(context, e, title: l10n.exportFailed);
       }
     }
   }
   
-  Future<void> _regenerate(VideoRecord video) async {
+  Future<void> _regenerate(VideoRecord video, AppLocalizations l10n) async {
     setState(() => _isRegenerating = true);
     
     try {
@@ -231,7 +233,7 @@ class _ViewerPageState extends ConsumerState<ViewerPage> {
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('笔记已重新生成')),
+          SnackBar(content: Text(l10n.noteRegenerated)),
         );
       }
     } catch (e) {
@@ -239,8 +241,8 @@ class _ViewerPageState extends ConsumerState<ViewerPage> {
         ErrorHandler.showErrorWithRetry(
           context,
           e,
-          title: '重新生成失败',
-          onRetry: () => _regenerate(video),
+          title: l10n.regenerateFailed,
+          onRetry: () => _regenerate(video, l10n),
         );
       }
     } finally {

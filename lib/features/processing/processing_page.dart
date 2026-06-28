@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:keeji/core/providers.dart';
 import 'package:keeji/core/error_handler.dart';
+import 'package:keeji/l10n/app_localizations.dart';
 import 'package:keeji/models/video_record.dart';
 
 final videoStreamProvider = StreamProvider.family<VideoRecord?, String>((ref, videoId) {
@@ -18,17 +19,18 @@ class ProcessingPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final videoAsync = ref.watch(videoStreamProvider(videoId));
+    final l10n = AppLocalizations.of(context)!;
     
     return Scaffold(
       appBar: AppBar(
-        title: const Text('处理中'),
+        title: Text(l10n.processing(0)),
       ),
       body: videoAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(child: Text('错误: $error')),
+        error: (error, stack) => Center(child: Text('${l10n.error}: $error')),
         data: (video) {
           if (video == null) {
-            return const Center(child: Text('视频不存在'));
+            return Center(child: Text(l10n.error));
           }
           
           if (video.status == VideoStatus.done) {
@@ -38,18 +40,18 @@ class ProcessingPage extends ConsumerWidget {
           }
           
           if (video.status == VideoStatus.failed) {
-            return _buildFailed(context, ref, video);
+            return _buildFailed(context, ref, video, l10n);
           }
           
-          return _buildProcessing(context, video);
+          return _buildProcessing(context, video, l10n);
         },
       ),
     );
   }
   
-  Widget _buildProcessing(BuildContext context, VideoRecord video) {
+  Widget _buildProcessing(BuildContext context, VideoRecord video, AppLocalizations l10n) {
     final progress = video.progress;
-    final stage = _getStage(progress);
+    final stage = _getStage(progress, l10n);
     
     return Center(
       child: Card(
@@ -69,7 +71,7 @@ class ProcessingPage extends ConsumerWidget {
               ),
               const SizedBox(height: 24),
               Text(
-                '正在处理视频...',
+                l10n.processing((progress * 100).toInt()),
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 8),
@@ -80,7 +82,7 @@ class ProcessingPage extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              _buildProgressSteps(context, progress),
+              _buildProgressSteps(context, progress, l10n),
               const SizedBox(height: 24),
               SizedBox(
                 width: 300,
@@ -104,7 +106,7 @@ class ProcessingPage extends ConsumerWidget {
     );
   }
   
-  Widget _buildFailed(BuildContext context, WidgetRef ref, VideoRecord video) {
+  Widget _buildFailed(BuildContext context, WidgetRef ref, VideoRecord video, AppLocalizations l10n) {
     return Center(
       child: Card(
         margin: const EdgeInsets.all(24),
@@ -120,12 +122,12 @@ class ProcessingPage extends ConsumerWidget {
               ),
               const SizedBox(height: 24),
               Text(
-                '处理失败',
+                l10n.failed,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 8),
               Text(
-                video.error ?? '未知错误',
+                video.error ?? l10n.error,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(context).colorScheme.error,
                 ),
@@ -137,13 +139,13 @@ class ProcessingPage extends ConsumerWidget {
                 children: [
                   OutlinedButton(
                     onPressed: () => context.go('/'),
-                    child: const Text('返回主页'),
+                    child: Text(l10n.home),
                   ),
                   const SizedBox(width: 16),
                   FilledButton.icon(
-                    onPressed: () => _retry(context, ref, video),
+                    onPressed: () => _retry(context, ref, video, l10n),
                     icon: const Icon(Icons.refresh),
-                    label: const Text('重试'),
+                    label: Text(l10n.retry),
                   ),
                 ],
               ),
@@ -154,11 +156,11 @@ class ProcessingPage extends ConsumerWidget {
     );
   }
   
-  Widget _buildProgressSteps(BuildContext context, double progress) {
+  Widget _buildProgressSteps(BuildContext context, double progress, AppLocalizations l10n) {
     final steps = [
-      _Step('提取音频', Icons.audiotrack, progress >= 0.3),
-      _Step('语音转写', Icons.mic, progress >= 0.7),
-      _Step('生成笔记', Icons.auto_awesome, progress >= 1.0),
+      _Step(l10n.asrSettings, Icons.audiotrack, progress >= 0.3),
+      _Step(l10n.asrSettings, Icons.mic, progress >= 0.7),
+      _Step(l10n.llmSettings, Icons.auto_awesome, progress >= 1.0),
     ];
     
     return Column(
@@ -189,14 +191,14 @@ class ProcessingPage extends ConsumerWidget {
     );
   }
   
-  String _getStage(double progress) {
-    if (progress < 0.3) return '正在提取音频...';
-    if (progress < 0.7) return '正在语音转写...';
-    if (progress < 1.0) return '正在生成笔记...';
-    return '处理完成';
+  String _getStage(double progress, AppLocalizations l10n) {
+    if (progress < 0.3) return l10n.asrSettings;
+    if (progress < 0.7) return l10n.asrSettings;
+    if (progress < 1.0) return l10n.llmSettings;
+    return l10n.done;
   }
   
-  Future<void> _retry(BuildContext context, WidgetRef ref, VideoRecord video) async {
+  Future<void> _retry(BuildContext context, WidgetRef ref, VideoRecord video, AppLocalizations l10n) async {
     try {
       final processor = ref.read(videoProcessorProvider);
       await processor.retryProcessing(video: video);
@@ -205,8 +207,8 @@ class ProcessingPage extends ConsumerWidget {
         ErrorHandler.showErrorWithRetry(
           context,
           e,
-          title: '重试失败',
-          onRetry: () => _retry(context, ref, video),
+          title: l10n.retryFailed,
+          onRetry: () => _retry(context, ref, video, l10n),
         );
       }
     }
