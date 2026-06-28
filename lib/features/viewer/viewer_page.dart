@@ -109,11 +109,13 @@ class _ViewerPageState extends ConsumerState<ViewerPage> {
       ),
       body: Row(
         children: [
-          SizedBox(
-            width: 400,
-            child: VideoPlayerWidget(videoPath: video.filePath),
-          ),
-          const VerticalDivider(width: 1),
+          if (video.sourceType == SourceType.video) ...[
+            SizedBox(
+              width: 400,
+              child: VideoPlayerWidget(videoPath: video.filePath),
+            ),
+            const VerticalDivider(width: 1),
+          ],
           Expanded(
             child: note != null
                 ? _MarkdownViewer(content: note.contentMd)

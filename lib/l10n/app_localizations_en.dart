@@ -378,4 +378,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get currentConfig => 'Current configuration:';
+
+  @override
+  String get videoPlaybackError => 'Unable to play this video';
 }

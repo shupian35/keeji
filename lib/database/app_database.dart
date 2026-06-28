@@ -23,9 +23,18 @@ class AppDatabase {
     
     return openDatabase(
       dbPath,
-      version: 1,
+      version: 2,
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
     );
+  }
+  
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute(
+        "ALTER TABLE video_records ADD COLUMN source_type INTEGER NOT NULL DEFAULT 0",
+      );
+    }
   }
   
   Future<void> _onCreate(Database db, int version) async {
@@ -34,6 +43,7 @@ class AppDatabase {
         id TEXT PRIMARY KEY,
         filename TEXT NOT NULL,
         file_path TEXT NOT NULL,
+        source_type INTEGER NOT NULL DEFAULT 0,
         status INTEGER NOT NULL DEFAULT 0,
         progress REAL NOT NULL DEFAULT 0.0,
         error TEXT,
@@ -104,6 +114,7 @@ class AppDatabase {
       id: map['id'] as String,
       filename: map['filename'] as String,
       filePath: map['file_path'] as String,
+      sourceType: SourceType.values[map['source_type'] as int? ?? 0],
       status: VideoStatus.values[map['status'] as int],
       progress: (map['progress'] as num).toDouble(),
       error: map['error'] as String?,
@@ -116,6 +127,7 @@ class AppDatabase {
       'id': video.id,
       'filename': video.filename,
       'file_path': video.filePath,
+      'source_type': video.sourceType.index,
       'status': video.status.index,
       'progress': video.progress,
       'error': video.error,

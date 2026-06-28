@@ -374,6 +374,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get currentConfig => '当前配置：';
+
+  @override
+  String get videoPlaybackError => '无法播放此视频';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -746,4 +749,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get currentConfig => '當前設定：';
+
+  @override
+  String get videoPlaybackError => '無法播放此影片';
 }

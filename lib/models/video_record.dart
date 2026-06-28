@@ -9,11 +9,17 @@ enum VideoStatus {
   failed,
 }
 
+enum SourceType {
+  video,
+  text,
+}
+
 @JsonSerializable()
 class VideoRecord {
   final String id;
   final String filename;
   final String filePath;
+  final SourceType sourceType;
   final VideoStatus status;
   final double progress;
   final String? error;
@@ -23,6 +29,7 @@ class VideoRecord {
     required this.id,
     required this.filename,
     required this.filePath,
+    this.sourceType = SourceType.video,
     this.status = VideoStatus.pending,
     this.progress = 0.0,
     this.error,
@@ -36,6 +43,7 @@ class VideoRecord {
     String? id,
     String? filename,
     String? filePath,
+    SourceType? sourceType,
     VideoStatus? status,
     double? progress,
     String? error,
@@ -45,6 +53,7 @@ class VideoRecord {
       id: id ?? this.id,
       filename: filename ?? this.filename,
       filePath: filePath ?? this.filePath,
+      sourceType: sourceType ?? this.sourceType,
       status: status ?? this.status,
       progress: progress ?? this.progress,
       error: error ?? this.error,

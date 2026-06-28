@@ -10,6 +10,9 @@ VideoRecord _$VideoRecordFromJson(Map<String, dynamic> json) => VideoRecord(
   id: json['id'] as String,
   filename: json['filename'] as String,
   filePath: json['filePath'] as String,
+  sourceType:
+      $enumDecodeNullable(_$SourceTypeEnumMap, json['sourceType']) ??
+      SourceType.video,
   status:
       $enumDecodeNullable(_$VideoStatusEnumMap, json['status']) ??
       VideoStatus.pending,
@@ -23,11 +26,17 @@ Map<String, dynamic> _$VideoRecordToJson(VideoRecord instance) =>
       'id': instance.id,
       'filename': instance.filename,
       'filePath': instance.filePath,
+      'sourceType': _$SourceTypeEnumMap[instance.sourceType]!,
       'status': _$VideoStatusEnumMap[instance.status]!,
       'progress': instance.progress,
       'error': instance.error,
       'createdAt': instance.createdAt.toIso8601String(),
     };
+
+const _$SourceTypeEnumMap = {
+  SourceType.video: 'video',
+  SourceType.text: 'text',
+};
 
 const _$VideoStatusEnumMap = {
   VideoStatus.pending: 'pending',

@@ -794,6 +794,12 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'当前配置：'**
   String get currentConfig;
+
+  /// No description provided for @videoPlaybackError.
+  ///
+  /// In zh, this message translates to:
+  /// **'无法播放此视频'**
+  String get videoPlaybackError;
 }
 
 class _AppLocalizationsDelegate

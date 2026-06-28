@@ -297,6 +297,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
             id: const Uuid().v4(),
             filename: filePath.split(Platform.pathSeparator).last,
             filePath: filePath,
+            sourceType: SourceType.video,
             status: VideoStatus.pending,
             createdAt: DateTime.now(),
           );
@@ -390,6 +391,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
               id: const Uuid().v4(),
               filename: fileName,
               filePath: filePath,
+              sourceType: SourceType.text,
               status: VideoStatus.done,
               createdAt: DateTime.now(),
             );

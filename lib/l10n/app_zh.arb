@@ -114,5 +114,6 @@
   "checkApiKey": "API Key 是否正确",
   "checkApiUrl": "API 地址格式是否正确",
   "checkNetwork": "网络连接是否正常",
-  "currentConfig": "当前配置："
+  "currentConfig": "当前配置：",
+  "videoPlaybackError": "无法播放此视频"
 }

@@ -114,5 +114,6 @@
   "checkApiKey": "API Key is correct",
   "checkApiUrl": "API URL format is correct",
   "checkNetwork": "Network connection is normal",
-  "currentConfig": "Current configuration:"
+  "currentConfig": "Current configuration:",
+  "videoPlaybackError": "Unable to play this video"
 }

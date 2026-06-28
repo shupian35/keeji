@@ -51,6 +51,9 @@ dependencies:
   
   # ZIP 压缩
   archive: ^3.6.1
+  
+  # 视频播放
+  video_player: ^2.9.3
 
 dev_dependencies:
   flutter_test:
