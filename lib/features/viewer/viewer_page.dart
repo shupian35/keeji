@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:media_kit/media_kit.dart';
+import 'package:media_kit_video/media_kit_video.dart';
 import 'package:keeji/core/providers.dart';
 import 'package:keeji/core/error_handler.dart';
 import 'package:keeji/l10n/app_localizations.dart';
@@ -32,6 +34,35 @@ class ViewerPage extends ConsumerStatefulWidget {
 class _ViewerPageState extends ConsumerState<ViewerPage> {
   bool _showTranscript = false;
   bool _isRegenerating = false;
+  Player? _player;
+  VideoController? _controller;
+  
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initPlayerIfNeeded();
+    });
+  }
+  
+  void _initPlayerIfNeeded() {
+    final videoAsync = ref.read(videoProvider(widget.videoId));
+    videoAsync.whenData((video) {
+      if (video != null && video.sourceType == SourceType.video && mounted) {
+        setState(() {
+          _player = Player();
+          _controller = VideoController(_player!);
+        });
+        _player!.open(Media(video.filePath));
+      }
+    });
+  }
+  
+  @override
+  void dispose() {
+    _player?.dispose();
+    super.dispose();
+  }
   
   @override
   Widget build(BuildContext context) {
@@ -114,7 +145,11 @@ class _ViewerPageState extends ConsumerState<ViewerPage> {
               width: 400,
               child: Stack(
                 children: [
-                  VideoPlayerWidget(videoPath: video.filePath),
+                  VideoPlayerWidget(
+                    videoPath: video.filePath,
+                    player: _player,
+                    controller: _controller,
+                  ),
                   Positioned(
                     top: 8,
                     right: 8,
@@ -267,9 +302,14 @@ class _ViewerPageState extends ConsumerState<ViewerPage> {
   }
   
   void _enterFullscreen(String videoPath) {
+    if (_player == null || _controller == null) return;
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => _FullscreenVideoPage(videoPath: videoPath),
+        builder: (context) => _FullscreenVideoPage(
+          videoPath: videoPath,
+          player: _player!,
+          controller: _controller!,
+        ),
       ),
     );
   }
@@ -277,8 +317,14 @@ class _ViewerPageState extends ConsumerState<ViewerPage> {
 
 class _FullscreenVideoPage extends StatelessWidget {
   final String videoPath;
+  final Player player;
+  final VideoController controller;
 
-  const _FullscreenVideoPage({required this.videoPath});
+  const _FullscreenVideoPage({
+    required this.videoPath,
+    required this.player,
+    required this.controller,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -287,7 +333,11 @@ class _FullscreenVideoPage extends StatelessWidget {
       body: Stack(
         children: [
           Center(
-            child: VideoPlayerWidget(videoPath: videoPath),
+            child: VideoPlayerWidget(
+              videoPath: videoPath,
+              player: player,
+              controller: controller,
+            ),
           ),
           Positioned(
             top: 16,
