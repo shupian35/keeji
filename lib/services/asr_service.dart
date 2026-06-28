@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:keeji/core/constants.dart';
 import 'package:keeji/core/exceptions.dart';
@@ -26,6 +28,7 @@ class ASRService {
       baseUrl: _baseUrl,
       headers: {
         'Authorization': 'Bearer $_apiKey',
+        'Content-Type': 'application/json',
       },
     ));
     
@@ -56,6 +59,7 @@ class ASRService {
       baseUrl: _baseUrl,
       headers: {
         'Authorization': 'Bearer $_apiKey',
+        'Content-Type': 'application/json',
       },
     ));
     
@@ -94,6 +98,8 @@ class ASRService {
     }
   }
   
+  bool get _isMiMoModel => _model.startsWith('mimo-');
+  
   Future<String> transcribeFile({
     required String audioPath,
     void Function(double progress)? onProgress,
@@ -104,6 +110,17 @@ class ASRService {
       throw const ASRException('请先配置 ASR API Key');
     }
     
+    if (_isMiMoModel) {
+      return _transcribeWithMiMo(audioPath, onProgress);
+    } else {
+      return _transcribeWithOpenAI(audioPath, onProgress);
+    }
+  }
+  
+  Future<String> _transcribeWithOpenAI(
+    String audioPath,
+    void Function(double progress)? onProgress,
+  ) async {
     try {
       final formData = FormData.fromMap({
         'file': await MultipartFile.fromFile(audioPath),
@@ -123,6 +140,67 @@ class ASRService {
       
       if (response.statusCode == 200) {
         return response.data['text'] ?? '';
+      } else {
+        throw ASRException('转写失败: ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      throw ASRException('转写请求失败: ${e.message}');
+    }
+  }
+  
+  Future<String> _transcribeWithMiMo(
+    String audioPath,
+    void Function(double progress)? onProgress,
+  ) async {
+    try {
+      onProgress?.call(0.1);
+      
+      // 读取音频文件并转为 base64
+      final audioFile = File(audioPath);
+      final audioBytes = await audioFile.readAsBytes();
+      final audioBase64 = base64Encode(audioBytes);
+      
+      // 检测音频格式
+      final ext = audioPath.split('.').last.toLowerCase();
+      String mimeType;
+      if (ext == 'mp3') {
+        mimeType = 'audio/mpeg';
+      } else {
+        mimeType = 'audio/wav';
+      }
+      
+      onProgress?.call(0.3);
+      
+      // 构建请求
+      final response = await _dio!.post(
+        '/chat/completions',
+        data: {
+          'model': _model,
+          'messages': [
+            {
+              'role': 'user',
+              'content': [
+                {
+                  'type': 'input_audio',
+                  'input_audio': {
+                    'data': 'data:$mimeType;base64,$audioBase64',
+                  },
+                },
+              ],
+            },
+          ],
+          'asr_options': {
+            'language': 'zh',
+          },
+        },
+      );
+      
+      onProgress?.call(0.9);
+      
+      if (response.statusCode == 200) {
+        final content = response.data['choices'][0]['message']['content'];
+        onProgress?.call(1.0);
+        return content ?? '';
       } else {
         throw ASRException('转写失败: ${response.statusCode}');
       }

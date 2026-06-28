@@ -4,6 +4,41 @@ import 'package:keeji/core/constants.dart';
 import 'package:keeji/core/providers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+class _AsrPreset {
+  final String name;
+  final String baseUrl;
+  final String model;
+  
+  const _AsrPreset({
+    required this.name,
+    required this.baseUrl,
+    required this.model,
+  });
+}
+
+const _asrPresets = [
+  _AsrPreset(
+    name: 'SiliconFlow',
+    baseUrl: 'https://api.siliconflow.cn/v1',
+    model: 'FunAudioLLM/SenseVoiceSmall',
+  ),
+  _AsrPreset(
+    name: '小米 MiMo',
+    baseUrl: 'https://api.xiaomimimo.com/v1',
+    model: 'mimo-v2.5-asr',
+  ),
+  _AsrPreset(
+    name: 'OpenAI Whisper',
+    baseUrl: 'https://api.openai.com/v1',
+    model: 'whisper-1',
+  ),
+  _AsrPreset(
+    name: '自定义',
+    baseUrl: '',
+    model: '',
+  ),
+];
+
 class AsrSettings extends ConsumerStatefulWidget {
   const AsrSettings({super.key});
 
@@ -15,6 +50,7 @@ class _AsrSettingsState extends ConsumerState<AsrSettings> {
   late TextEditingController _apiKeyController;
   late TextEditingController _baseUrlController;
   late TextEditingController _modelController;
+  int _selectedPreset = 0;
   bool _isLoading = true;
   bool _isTesting = false;
   
@@ -29,10 +65,23 @@ class _AsrSettingsState extends ConsumerState<AsrSettings> {
   
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
+    final baseUrl = prefs.getString('asr_base_url') ?? AppConstants.defaultAsrBaseUrl;
+    final model = prefs.getString('asr_model') ?? AppConstants.defaultAsrModel;
+    
+    // 检测当前配置匹配哪个预设
+    int presetIndex = _asrPresets.length - 1; // 默认自定义
+    for (int i = 0; i < _asrPresets.length - 1; i++) {
+      if (_asrPresets[i].baseUrl == baseUrl && _asrPresets[i].model == model) {
+        presetIndex = i;
+        break;
+      }
+    }
+    
     setState(() {
       _apiKeyController.text = prefs.getString('asr_api_key') ?? '';
-      _baseUrlController.text = prefs.getString('asr_base_url') ?? AppConstants.defaultAsrBaseUrl;
-      _modelController.text = prefs.getString('asr_model') ?? AppConstants.defaultAsrModel;
+      _baseUrlController.text = baseUrl;
+      _modelController.text = model;
+      _selectedPreset = presetIndex;
       _isLoading = false;
     });
   }
@@ -44,6 +93,17 @@ class _AsrSettingsState extends ConsumerState<AsrSettings> {
     _modelController.dispose();
     super.dispose();
   }
+  
+  void _onPresetChanged(int? index) {
+    if (index == null) return;
+    setState(() {
+      _selectedPreset = index;
+      if (index < _asrPresets.length - 1) {
+        _baseUrlController.text = _asrPresets[index].baseUrl;
+        _modelController.text = _asrPresets[index].model;
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,7 +112,23 @@ class _AsrSettingsState extends ConsumerState<AsrSettings> {
     }
     
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        DropdownButtonFormField<int>(
+          initialValue: _selectedPreset,
+          decoration: const InputDecoration(
+            labelText: '服务商预设',
+            border: OutlineInputBorder(),
+          ),
+          items: _asrPresets.asMap().entries.map((entry) {
+            return DropdownMenuItem(
+              value: entry.key,
+              child: Text(entry.value.name),
+            );
+          }).toList(),
+          onChanged: _onPresetChanged,
+        ),
+        const SizedBox(height: 12),
         TextField(
           controller: _apiKeyController,
           decoration: const InputDecoration(
@@ -80,6 +156,16 @@ class _AsrSettingsState extends ConsumerState<AsrSettings> {
             border: OutlineInputBorder(),
           ),
         ),
+        if (_selectedPreset == 1) // 小米 MiMo
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              '提示: 小米 MiMo ASR 使用 chat completions 接口，音频会自动转为 base64',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
         const SizedBox(height: 12),
         Row(
           children: [
