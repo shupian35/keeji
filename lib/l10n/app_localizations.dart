@@ -800,6 +800,72 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'无法播放此视频'**
   String get videoPlaybackError;
+
+  /// No description provided for @playbackSpeed.
+  ///
+  /// In zh, this message translates to:
+  /// **'播放速度'**
+  String get playbackSpeed;
+
+  /// No description provided for @speed05x.
+  ///
+  /// In zh, this message translates to:
+  /// **'0.5x'**
+  String get speed05x;
+
+  /// No description provided for @speed075x.
+  ///
+  /// In zh, this message translates to:
+  /// **'0.75x'**
+  String get speed075x;
+
+  /// No description provided for @speed1x.
+  ///
+  /// In zh, this message translates to:
+  /// **'1x'**
+  String get speed1x;
+
+  /// No description provided for @speed125x.
+  ///
+  /// In zh, this message translates to:
+  /// **'1.25x'**
+  String get speed125x;
+
+  /// No description provided for @speed15x.
+  ///
+  /// In zh, this message translates to:
+  /// **'1.5x'**
+  String get speed15x;
+
+  /// No description provided for @speed2x.
+  ///
+  /// In zh, this message translates to:
+  /// **'2x'**
+  String get speed2x;
+
+  /// No description provided for @volume.
+  ///
+  /// In zh, this message translates to:
+  /// **'音量'**
+  String get volume;
+
+  /// No description provided for @fullscreen.
+  ///
+  /// In zh, this message translates to:
+  /// **'全屏'**
+  String get fullscreen;
+
+  /// No description provided for @exitFullscreen.
+  ///
+  /// In zh, this message translates to:
+  /// **'退出全屏'**
+  String get exitFullscreen;
+
+  /// No description provided for @buffering.
+  ///
+  /// In zh, this message translates to:
+  /// **'缓冲中...'**
+  String get buffering;
 }
 
 class _AppLocalizationsDelegate

@@ -115,5 +115,16 @@
   "checkApiUrl": "API 位址格式是否正確",
   "checkNetwork": "網路連線是否正常",
   "currentConfig": "當前設定：",
-  "videoPlaybackError": "無法播放此影片"
+  "videoPlaybackError": "無法播放此影片",
+  "playbackSpeed": "播放速度",
+  "speed05x": "0.5x",
+  "speed075x": "0.75x",
+  "speed1x": "1x",
+  "speed125x": "1.25x",
+  "speed15x": "1.5x",
+  "speed2x": "2x",
+  "volume": "音量",
+  "fullscreen": "全螢幕",
+  "exitFullscreen": "退出全螢幕",
+  "buffering": "緩衝中..."
 }

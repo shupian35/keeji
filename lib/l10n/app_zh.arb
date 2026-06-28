@@ -115,5 +115,16 @@
   "checkApiUrl": "API 地址格式是否正确",
   "checkNetwork": "网络连接是否正常",
   "currentConfig": "当前配置：",
-  "videoPlaybackError": "无法播放此视频"
+  "videoPlaybackError": "无法播放此视频",
+  "playbackSpeed": "播放速度",
+  "speed05x": "0.5x",
+  "speed075x": "0.75x",
+  "speed1x": "1x",
+  "speed125x": "1.25x",
+  "speed15x": "1.5x",
+  "speed2x": "2x",
+  "volume": "音量",
+  "fullscreen": "全屏",
+  "exitFullscreen": "退出全屏",
+  "buffering": "缓冲中..."
 }

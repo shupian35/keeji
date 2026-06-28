@@ -377,6 +377,39 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get videoPlaybackError => '无法播放此视频';
+
+  @override
+  String get playbackSpeed => '播放速度';
+
+  @override
+  String get speed05x => '0.5x';
+
+  @override
+  String get speed075x => '0.75x';
+
+  @override
+  String get speed1x => '1x';
+
+  @override
+  String get speed125x => '1.25x';
+
+  @override
+  String get speed15x => '1.5x';
+
+  @override
+  String get speed2x => '2x';
+
+  @override
+  String get volume => '音量';
+
+  @override
+  String get fullscreen => '全屏';
+
+  @override
+  String get exitFullscreen => '退出全屏';
+
+  @override
+  String get buffering => '缓冲中...';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -752,4 +785,37 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get videoPlaybackError => '無法播放此影片';
+
+  @override
+  String get playbackSpeed => '播放速度';
+
+  @override
+  String get speed05x => '0.5x';
+
+  @override
+  String get speed075x => '0.75x';
+
+  @override
+  String get speed1x => '1x';
+
+  @override
+  String get speed125x => '1.25x';
+
+  @override
+  String get speed15x => '1.5x';
+
+  @override
+  String get speed2x => '2x';
+
+  @override
+  String get volume => '音量';
+
+  @override
+  String get fullscreen => '全螢幕';
+
+  @override
+  String get exitFullscreen => '退出全螢幕';
+
+  @override
+  String get buffering => '緩衝中...';
 }

@@ -381,4 +381,37 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get videoPlaybackError => 'Unable to play this video';
+
+  @override
+  String get playbackSpeed => 'Playback Speed';
+
+  @override
+  String get speed05x => '0.5x';
+
+  @override
+  String get speed075x => '0.75x';
+
+  @override
+  String get speed1x => '1x';
+
+  @override
+  String get speed125x => '1.25x';
+
+  @override
+  String get speed15x => '1.5x';
+
+  @override
+  String get speed2x => '2x';
+
+  @override
+  String get volume => 'Volume';
+
+  @override
+  String get fullscreen => 'Fullscreen';
+
+  @override
+  String get exitFullscreen => 'Exit Fullscreen';
+
+  @override
+  String get buffering => 'Buffering...';
 }

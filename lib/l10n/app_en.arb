@@ -115,5 +115,16 @@
   "checkApiUrl": "API URL format is correct",
   "checkNetwork": "Network connection is normal",
   "currentConfig": "Current configuration:",
-  "videoPlaybackError": "Unable to play this video"
+  "videoPlaybackError": "Unable to play this video",
+  "playbackSpeed": "Playback Speed",
+  "speed05x": "0.5x",
+  "speed075x": "0.75x",
+  "speed1x": "1x",
+  "speed125x": "1.25x",
+  "speed15x": "1.5x",
+  "speed2x": "2x",
+  "volume": "Volume",
+  "fullscreen": "Fullscreen",
+  "exitFullscreen": "Exit Fullscreen",
+  "buffering": "Buffering..."
 }
