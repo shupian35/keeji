@@ -156,6 +156,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get connectionFailed => '连接测试失败';
 
   @override
+  String modelNotFound(Object model) {
+    return '模型不存在: $model';
+  }
+
+  @override
   String get pleaseEnterApiKey => '请先输入 API Key';
 
   @override
@@ -604,6 +609,11 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get connectionFailed => '連線測試失敗';
+
+  @override
+  String modelNotFound(Object model) {
+    return '模型不存在: $model';
+  }
 
   @override
   String get pleaseEnterApiKey => '請先輸入 API Key';

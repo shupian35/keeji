@@ -157,6 +157,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get connectionFailed => 'Connection test failed';
 
   @override
+  String modelNotFound(Object model) {
+    return 'Model not found: $model';
+  }
+
+  @override
   String get pleaseEnterApiKey => 'Please enter API Key';
 
   @override

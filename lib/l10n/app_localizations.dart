@@ -381,6 +381,12 @@ abstract class AppLocalizations {
   /// **'连接测试失败'**
   String get connectionFailed;
 
+  /// No description provided for @modelNotFound.
+  ///
+  /// In zh, this message translates to:
+  /// **'模型不存在: {model}'**
+  String modelNotFound(Object model);
+
   /// No description provided for @pleaseEnterApiKey.
   ///
   /// In zh, this message translates to:

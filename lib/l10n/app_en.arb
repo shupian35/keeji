@@ -46,6 +46,7 @@
   "testing": "Testing...",
   "connectionSuccess": "Connection successful",
   "connectionFailed": "Connection test failed",
+  "modelNotFound": "Model not found: {model}",
   "pleaseEnterApiKey": "Please enter API Key",
   "settingsSaved": "Settings saved",
   "enableAudioChunking": "Enable Audio Chunking",

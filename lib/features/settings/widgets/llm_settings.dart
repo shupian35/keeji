@@ -148,7 +148,9 @@ class _LlmSettingsState extends ConsumerState<LlmSettings> {
         model: _modelController.text,
       );
       
-      final result = await llmService.testConnection();
+      final result = await llmService.testConnection(
+        modelNotFoundMessage: l10n.modelNotFound(_modelController.text),
+      );
       
       if (mounted) {
         if (result == 'success') {

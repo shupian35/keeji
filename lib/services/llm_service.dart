@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer';
 import 'package:dio/dio.dart';
 import 'package:keeji/core/constants.dart';
 import 'package:keeji/core/exceptions.dart';
@@ -65,7 +66,7 @@ class LLMService {
     _initialized = true;
   }
   
-  Future<String> testConnection() async {
+  Future<String> testConnection({String? modelNotFoundMessage}) async {
     await _ensureInitialized();
     
     if (_apiKey.isEmpty) {
@@ -73,12 +74,22 @@ class LLMService {
     }
     
     try {
+      log('LLM testConnection: baseUrl=$_baseUrl, model=$_model');
       final response = await _dio!.get('/models');
+      log('LLM testConnection response: statusCode=${response.statusCode}, data=${response.data}');
       if (response.statusCode == 200) {
+        final models = response.data['data'] as List?;
+        if (models != null) {
+          final modelIds = models.map((m) => m['id'].toString()).toList();
+          if (!modelIds.contains(_model)) {
+            return modelNotFoundMessage ?? '模型不存在: $_model';
+          }
+        }
         return 'success';
       }
-      return '连接失败: HTTP ${response.statusCode}';
+      return response.data.toString();
     } on DioException catch (e) {
+      log('LLM testConnection error: statusCode=${e.response?.statusCode}, message=${e.message}');
       if (e.response?.statusCode == 401) {
         return 'API Key 无效';
       }
@@ -93,6 +104,7 @@ class LLMService {
       }
       return '连接失败: ${e.message}';
     } catch (e) {
+      log('LLM testConnection exception: $e');
       return '连接失败: $e';
     }
   }

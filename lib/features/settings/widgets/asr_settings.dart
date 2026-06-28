@@ -279,7 +279,9 @@ class _AsrSettingsState extends ConsumerState<AsrSettings> {
         model: _modelController.text,
       );
       
-      final result = await asrService.testConnection();
+      final result = await asrService.testConnection(
+        modelNotFoundMessage: l10n.modelNotFound(_modelController.text),
+      );
       
       if (mounted) {
         if (result == 'success') {

@@ -46,6 +46,7 @@
   "testing": "測試中...",
   "connectionSuccess": "連線成功",
   "connectionFailed": "連線測試失敗",
+  "modelNotFound": "模型不存在: {model}",
   "pleaseEnterApiKey": "請先輸入 API Key",
   "settingsSaved": "設定已儲存",
   "enableAudioChunking": "啟用長音訊分段",

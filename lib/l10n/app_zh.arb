@@ -46,6 +46,7 @@
   "testing": "测试中...",
   "connectionSuccess": "连接成功",
   "connectionFailed": "连接测试失败",
+  "modelNotFound": "模型不存在: {model}",
   "pleaseEnterApiKey": "请先输入 API Key",
   "settingsSaved": "设置已保存",
   "enableAudioChunking": "启用长音频分段",
