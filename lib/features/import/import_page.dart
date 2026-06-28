@@ -6,12 +6,17 @@ import 'package:uuid/uuid.dart';
 import 'package:keeji/core/providers.dart';
 import 'package:keeji/core/error_handler.dart';
 import 'package:keeji/models/video_record.dart';
+import 'package:keeji/models/note.dart';
 import 'package:keeji/core/constants.dart';
 import 'package:keeji/features/home/widgets/video_list.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+enum ImportType { video, text }
+
 class ImportPage extends ConsumerStatefulWidget {
-  const ImportPage({super.key});
+  final ImportType importType;
+  
+  const ImportPage({super.key, this.importType = ImportType.video});
 
   @override
   ConsumerState<ImportPage> createState() => _ImportPageState();
@@ -21,12 +26,26 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   final List<String> _selectedFiles = [];
   bool _startProcessing = true;
   bool _isImporting = false;
+  late ImportType _importType;
+  
+  @override
+  void initState() {
+    super.initState();
+    _importType = widget.importType;
+  }
   
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('导入视频'),
+        title: Text(_importType == ImportType.video ? '导入视频' : '导入原文'),
+        actions: [
+          TextButton.icon(
+            onPressed: _isImporting ? null : _toggleImportType,
+            icon: Icon(_importType == ImportType.video ? Icons.text_snippet : Icons.video_library),
+            label: Text(_importType == ImportType.video ? '切换到导入原文' : '切换到导入视频'),
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(24),
@@ -48,7 +67,19 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     );
   }
   
+  void _toggleImportType() {
+    setState(() {
+      _selectedFiles.clear();
+      _importType = _importType == ImportType.video ? ImportType.text : ImportType.video;
+    });
+  }
+  
   Widget _buildFilePicker() {
+    final isVideo = _importType == ImportType.video;
+    final extensions = isVideo
+        ? AppConstants.videoExtensions.map((e) => e.replaceFirst('.', '')).toList()
+        : ['txt', 'md', 'text', 'srt', 'vtt'];
+    
     return Container(
       height: 200,
       decoration: BoxDecoration(
@@ -64,18 +95,18 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.cloud_upload_outlined,
+            isVideo ? Icons.cloud_upload_outlined : Icons.text_snippet_outlined,
             size: 48,
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
           const SizedBox(height: 16),
           Text(
-            '选择视频文件',
+            isVideo ? '选择视频文件' : '选择原文文件',
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
           Text(
-            '支持 ${AppConstants.videoExtensions.join(", ")}',
+            '支持 ${extensions.join(", ")}',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
@@ -92,6 +123,8 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   }
   
   Widget _buildFileList() {
+    final isVideo = _importType == ImportType.video;
+    
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -108,7 +141,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
                 final filePath = _selectedFiles[index];
                 final fileName = filePath.split(Platform.pathSeparator).last;
                 return ListTile(
-                  leading: const Icon(Icons.video_file),
+                  leading: Icon(isVideo ? Icons.video_file : Icons.text_snippet),
                   title: Text(fileName, maxLines: 1, overflow: TextOverflow.ellipsis),
                   trailing: IconButton(
                     icon: const Icon(Icons.remove_circle_outline),
@@ -128,15 +161,20 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   }
   
   Widget _buildOptions() {
+    final isVideo = _importType == ImportType.video;
+    
     return Card(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Row(
           children: [
-            const Icon(Icons.play_circle_outline, size: 20),
+            Icon(
+              isVideo ? Icons.play_circle_outline : Icons.auto_awesome,
+              size: 20,
+            ),
             const SizedBox(width: 12),
-            const Expanded(
-              child: Text('导入后立即开始处理'),
+            Expanded(
+              child: Text(isVideo ? '导入后立即开始处理' : '导入后立即生成笔记'),
             ),
             Switch(
               value: _startProcessing,
@@ -153,6 +191,8 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   }
   
   Widget _buildImportButton() {
+    final isVideo = _importType == ImportType.video;
+    
     return FilledButton.icon(
       onPressed: _isImporting ? null : _importFiles,
       icon: _isImporting
@@ -162,16 +202,23 @@ class _ImportPageState extends ConsumerState<ImportPage> {
               child: CircularProgressIndicator(strokeWidth: 2),
             )
           : const Icon(Icons.add),
-      label: Text(_isImporting ? '导入中...' : '导入 ${_selectedFiles.length} 个视频'),
+      label: Text(_isImporting
+          ? '导入中...'
+          : isVideo
+              ? '导入 ${_selectedFiles.length} 个视频'
+              : '导入 ${_selectedFiles.length} 个原文'),
     );
   }
   
   Future<void> _pickFiles() async {
+    final isVideo = _importType == ImportType.video;
+    final extensions = isVideo
+        ? AppConstants.videoExtensions.map((e) => e.replaceFirst('.', '')).toList()
+        : ['txt', 'md', 'text', 'srt', 'vtt'];
+    
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: AppConstants.videoExtensions
-          .map((e) => e.replaceFirst('.', ''))
-          .toList(),
+      allowedExtensions: extensions,
       allowMultiple: true,
     );
     
@@ -183,13 +230,19 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   }
   
   Future<void> _importFiles() async {
+    if (_importType == ImportType.video) {
+      await _importVideoFiles();
+    } else {
+      await _importTextFiles();
+    }
+  }
+  
+  Future<void> _importVideoFiles() async {
     bool shouldProcess = _startProcessing;
     
-    // 如果选择立即处理，检查配置
     if (shouldProcess) {
       final configValid = await _checkApiConfig();
       if (!configValid && mounted) {
-        // 配置不完整，询问是否只导入不处理
         final importOnly = await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
@@ -235,12 +288,114 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         _startProcessingVideos(videos);
       }
       
-      // 刷新首页视频列表
       ref.read(videoListProvider.notifier).refresh();
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('成功导入 ${videos.length} 个视频')),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      setState(() => _isImporting = false);
+      if (mounted) {
+        ErrorHandler.showError(context, e, title: '导入失败');
+      }
+    }
+  }
+  
+  Future<void> _importTextFiles() async {
+    bool shouldGenerate = _startProcessing;
+    
+    if (shouldGenerate) {
+      final configValid = await _checkLlmConfig();
+      if (!configValid && mounted) {
+        final importOnly = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('是否只导入？'),
+            content: const Text('LLM 配置不完整，无法自动生成笔记。\n是否只导入原文，稍后再生成？'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('取消'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('只导入'),
+              ),
+            ],
+          ),
+        );
+        
+        if (importOnly != true) return;
+        shouldGenerate = false;
+      }
+    }
+    
+    setState(() => _isImporting = true);
+    
+    final db = ref.read(databaseProvider);
+    final llmService = ref.read(llmServiceProvider);
+    int successCount = 0;
+    
+    try {
+      for (final filePath in _selectedFiles) {
+        try {
+          // 读取原文内容
+          final file = File(filePath);
+          final content = await file.readAsString();
+          final fileName = filePath.split(Platform.pathSeparator).last;
+          
+          // 创建一个虚拟的视频记录（用于关联笔记）
+          final video = VideoRecord(
+            id: const Uuid().v4(),
+            filename: fileName,
+            filePath: filePath,
+            status: VideoStatus.done,
+            createdAt: DateTime.now(),
+          );
+          await db.insertVideo(video);
+          
+          if (shouldGenerate && content.isNotEmpty) {
+            // 生成笔记
+            final note = await llmService.generateNote(
+              transcript: content,
+              videoTitle: fileName.replaceAll(RegExp(r'\.[^.]+$'), ''),
+            );
+            
+            // 保存笔记
+            await db.insertNote(Note(
+              id: const Uuid().v4(),
+              videoId: video.id,
+              title: note.title,
+              contentMd: note.content,
+              transcriptJson: content,
+              createdAt: DateTime.now(),
+            ));
+          } else {
+            // 只保存原文作为笔记
+            await db.insertNote(Note(
+              id: const Uuid().v4(),
+              videoId: video.id,
+              title: fileName.replaceAll(RegExp(r'\.[^.]+$'), ''),
+              contentMd: content,
+              transcriptJson: content,
+              createdAt: DateTime.now(),
+            ));
+          }
+          
+          successCount++;
+        } catch (e) {
+          debugPrint('处理文件失败: $e');
+        }
+      }
+      
+      ref.read(videoListProvider.notifier).refresh();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('成功导入 $successCount 个文件')),
         );
         Navigator.pop(context);
       }
@@ -258,6 +413,13 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     final llmKey = prefs.getString('llm_api_key') ?? '';
     
     return asrKey.isNotEmpty && llmKey.isNotEmpty;
+  }
+  
+  Future<bool> _checkLlmConfig() async {
+    final prefs = await SharedPreferences.getInstance();
+    final llmKey = prefs.getString('llm_api_key') ?? '';
+    
+    return llmKey.isNotEmpty;
   }
   
   void _startProcessingVideos(List<VideoRecord> videos) {

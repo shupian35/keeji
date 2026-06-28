@@ -32,10 +32,39 @@ class HomePage extends ConsumerWidget {
               },
               tooltip: '批量操作',
             ),
-            IconButton(
+            PopupMenuButton<String>(
               icon: const Icon(Icons.add),
-              onPressed: () => context.push('/import'),
-              tooltip: '导入视频',
+              tooltip: '导入',
+              onSelected: (value) {
+                switch (value) {
+                  case 'video':
+                    context.push('/import');
+                    break;
+                  case 'text':
+                    context.push('/import?type=text');
+                    break;
+                }
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'video',
+                  child: ListTile(
+                    leading: Icon(Icons.video_library),
+                    title: Text('导入视频'),
+                    subtitle: Text('从视频提取音频转写并生成笔记'),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'text',
+                  child: ListTile(
+                    leading: Icon(Icons.text_snippet),
+                    title: Text('导入原文'),
+                    subtitle: Text('从文本文件直接生成笔记'),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+              ],
             ),
           ],
         ],

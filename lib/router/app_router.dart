@@ -45,7 +45,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/import',
-        builder: (context, state) => const ImportPage(),
+        builder: (context, state) {
+          final type = state.uri.queryParameters['type'];
+          return ImportPage(
+            importType: type == 'text' ? ImportType.text : ImportType.video,
+          );
+        },
       ),
       GoRoute(
         path: '/viewer/:videoId',
