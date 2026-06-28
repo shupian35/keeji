@@ -4,13 +4,20 @@
 
 ## 功能特性
 
-- **视频导入**：支持文件选择器和桌面拖拽
-- **音频提取**：调用 FFmpeg 提取音频轨道
-- **语音转写**：调用 SiliconFlow / OpenAI 兼容 ASR API
+- **视频导入**：支持文件选择器，批量导入
+- **原文导入**：支持导入文本文件直接生成笔记
+- **音频提取**：调用系统 FFmpeg 提取音频轨道
+- **语音转写**：支持多种 ASR 服务商
+  - SiliconFlow（默认）
+  - 小米 MiMo ASR
+  - OpenAI Whisper
+  - 自定义 OpenAI 兼容 API
 - **笔记生成**：调用 LLM API 生成结构化 Markdown 笔记
-- **笔记查看**：Markdown 渲染、视频播放
-- **笔记管理**：列表、删除、重命名
-- **导出功能**：导出为 .md 或 .txt 文件
+- **笔记查看**：Markdown 渲染、支持复制、多行选择
+- **笔记管理**：列表、删除、批量删除
+- **导出功能**：单个/批量导出为 .md 或 .txt 文件
+- **主题切换**：浅色/深色/跟随系统
+- **错误提示**：统一弹出框错误提示
 
 ## 快速开始
 
@@ -45,9 +52,14 @@ flutter run -d ios
 
 ### ASR（语音转写）
 
-- **API Key**：SiliconFlow 或其他 OpenAI 兼容 API
-- **API 地址**：默认 `https://api.siliconflow.cn/v1`
-- **模型**：默认 `FunAudioLLM/SenseVoiceSmall`
+支持多种服务商预设：
+
+| 服务商 | API 地址 | 模型 |
+|--------|----------|------|
+| SiliconFlow | `https://api.siliconflow.cn/v1` | `FunAudioLLM/SenseVoiceSmall` |
+| 小米 MiMo | `https://api.xiaomimimo.com/v1` | `mimo-v2.5-asr` |
+| OpenAI | `https://api.openai.com/v1` | `whisper-1` |
+| 自定义 | 用户配置 | 用户配置 |
 
 ### LLM（笔记生成）
 
@@ -62,28 +74,25 @@ lib/
 ├── main.dart                    # 应用入口
 ├── app.dart                     # 应用配置
 ├── core/                        # 核心基础设施
-│   ├── config.dart              # 应用配置
 │   ├── constants.dart           # 常量定义
+│   ├── error_handler.dart       # 统一错误处理
 │   ├── exceptions.dart          # 自定义异常
 │   ├── ffmpeg_service.dart      # FFmpeg 调用封装
-│   └── providers.dart           # Riverpod providers
+│   ├── providers.dart           # Riverpod providers
+│   └── theme_provider.dart      # 主题状态管理
 ├── models/                      # 数据模型
 │   ├── video_record.dart        # 视频记录
 │   └── note.dart                # 笔记
 ├── services/                    # 业务服务
-│   ├── asr_service.dart         # ASR 语音转写
+│   ├── asr_service.dart         # ASR 语音转写（支持小米 MiMo）
 │   ├── llm_service.dart         # LLM 笔记生成
-│   ├── video_processor.dart     # 视频处理流水线
-│   └── export_service.dart      # 导出服务
+│   ├── video_processor.dart     # 视频处理流水线（队列模式）
+│   └── export_service.dart      # 导出服务（支持批量）
 ├── database/                    # 数据库层
-│   ├── app_database.dart        # drift 数据库
-│   ├── tables.dart              # 表定义
-│   └── daos/                    # 数据访问对象
-│       ├── video_dao.dart
-│       └── note_dao.dart
+│   └── app_database.dart        # SQLite 数据库
 ├── features/                    # 功能模块
-│   ├── home/                    # 主页：视频列表
-│   ├── import/                  # 导入视频
+│   ├── home/                    # 主页：视频列表、批量操作
+│   ├── import/                  # 导入视频/原文
 │   ├── processing/              # 处理进度
 │   ├── viewer/                  # 笔记查看
 │   └── settings/                # 设置页
@@ -98,17 +107,19 @@ lib/
 - **状态管理**：Riverpod 2
 - **路由**：go_router
 - **HTTP**：dio
-- **数据库**：drift (SQLite)
-- **视频播放**：media_kit
+- **数据库**：sqflite + sqflite_common_ffi
 - **FFmpeg**：系统 ffmpeg 调用
+- **Markdown**：flutter_markdown
 
 ## 平台支持
 
-- Windows
-- macOS
-- Linux
-- Android
-- iOS
+| 平台 | 状态 |
+|------|------|
+| Windows | ✅ 完整支持 |
+| macOS | ✅ 完整支持 |
+| Linux | ✅ 完整支持 |
+| Android | ✅ 支持 |
+| iOS | ✅ 支持 |
 
 ## 开发计划
 
