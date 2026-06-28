@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:keeji/core/constants.dart';
 import 'package:keeji/core/providers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _AsrPreset {
+  final String id;
   final String name;
   final String baseUrl;
   final String model;
   
   const _AsrPreset({
+    required this.id,
     required this.name,
     required this.baseUrl,
     required this.model,
@@ -18,21 +19,25 @@ class _AsrPreset {
 
 const _asrPresets = [
   _AsrPreset(
+    id: 'siliconflow',
     name: 'SiliconFlow',
     baseUrl: 'https://api.siliconflow.cn/v1',
     model: 'FunAudioLLM/SenseVoiceSmall',
   ),
   _AsrPreset(
+    id: 'xiaomi',
     name: '小米 MiMo',
     baseUrl: 'https://api.xiaomimimo.com/v1',
     model: 'mimo-v2.5-asr',
   ),
   _AsrPreset(
+    id: 'openai',
     name: 'OpenAI Whisper',
     baseUrl: 'https://api.openai.com/v1',
     model: 'whisper-1',
   ),
   _AsrPreset(
+    id: 'custom',
     name: '自定义',
     baseUrl: '',
     model: '',
@@ -65,23 +70,22 @@ class _AsrSettingsState extends ConsumerState<AsrSettings> {
   
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    final baseUrl = prefs.getString('asr_base_url') ?? AppConstants.defaultAsrBaseUrl;
-    final model = prefs.getString('asr_model') ?? AppConstants.defaultAsrModel;
     
-    // 检测当前配置匹配哪个预设
-    int presetIndex = _asrPresets.length - 1; // 默认自定义
-    for (int i = 0; i < _asrPresets.length - 1; i++) {
-      if (_asrPresets[i].baseUrl == baseUrl && _asrPresets[i].model == model) {
+    // 加载上次选择的预设
+    final lastPresetId = prefs.getString('asr_preset_id') ?? 'siliconflow';
+    int presetIndex = _asrPresets.length - 1;
+    for (int i = 0; i < _asrPresets.length; i++) {
+      if (_asrPresets[i].id == lastPresetId) {
         presetIndex = i;
         break;
       }
     }
     
     setState(() {
-      _apiKeyController.text = prefs.getString('asr_api_key') ?? '';
-      _baseUrlController.text = baseUrl;
-      _modelController.text = model;
       _selectedPreset = presetIndex;
+      _baseUrlController.text = prefs.getString('asr_base_url') ?? _asrPresets[presetIndex].baseUrl;
+      _modelController.text = prefs.getString('asr_model') ?? _asrPresets[presetIndex].model;
+      _apiKeyController.text = prefs.getString('asr_api_key') ?? '';
       _isLoading = false;
     });
   }
@@ -94,14 +98,38 @@ class _AsrSettingsState extends ConsumerState<AsrSettings> {
     super.dispose();
   }
   
-  void _onPresetChanged(int? index) {
+  Future<void> _onPresetChanged(int? index) async {
     if (index == null) return;
+    
+    // 保存当前预设的设置
+    await _saveCurrentPresetSettings();
+    
     setState(() {
       _selectedPreset = index;
-      if (index < _asrPresets.length - 1) {
-        _baseUrlController.text = _asrPresets[index].baseUrl;
-        _modelController.text = _asrPresets[index].model;
-      }
+    });
+    
+    // 加载新预设的设置
+    await _loadPresetSettings(_asrPresets[index].id);
+  }
+  
+  Future<void> _saveCurrentPresetSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    final presetId = _asrPresets[_selectedPreset].id;
+    
+    // 保存当前预设的 API Key
+    await prefs.setString('asr_api_key_$presetId', _apiKeyController.text);
+    await prefs.setString('asr_base_url_$presetId', _baseUrlController.text);
+    await prefs.setString('asr_model_$presetId', _modelController.text);
+  }
+  
+  Future<void> _loadPresetSettings(String presetId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final preset = _asrPresets.firstWhere((p) => p.id == presetId, orElse: () => _asrPresets.last);
+    
+    setState(() {
+      _apiKeyController.text = prefs.getString('asr_api_key_$presetId') ?? '';
+      _baseUrlController.text = prefs.getString('asr_base_url_$presetId') ?? preset.baseUrl;
+      _modelController.text = prefs.getString('asr_model_$presetId') ?? preset.model;
     });
   }
 
@@ -156,7 +184,7 @@ class _AsrSettingsState extends ConsumerState<AsrSettings> {
             border: OutlineInputBorder(),
           ),
         ),
-        if (_selectedPreset == 1) // 小米 MiMo
+        if (_selectedPreset == 1)
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Text(
@@ -196,6 +224,23 @@ class _AsrSettingsState extends ConsumerState<AsrSettings> {
   }
   
   Future<void> _saveSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    final presetId = _asrPresets[_selectedPreset].id;
+    
+    // 保存预设 ID
+    await prefs.setString('asr_preset_id', presetId);
+    
+    // 保存当前预设的设置
+    await prefs.setString('asr_api_key_$presetId', _apiKeyController.text);
+    await prefs.setString('asr_base_url_$presetId', _baseUrlController.text);
+    await prefs.setString('asr_model_$presetId', _modelController.text);
+    
+    // 同时保存为全局设置（兼容）
+    await prefs.setString('asr_api_key', _apiKeyController.text);
+    await prefs.setString('asr_base_url', _baseUrlController.text);
+    await prefs.setString('asr_model', _modelController.text);
+    
+    // 更新服务
     final asrService = ref.read(asrServiceProvider);
     await asrService.updateConfig(
       apiKey: _apiKeyController.text,
