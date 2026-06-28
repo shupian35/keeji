@@ -26,6 +26,8 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   final List<String> _selectedFiles = [];
   bool _startProcessing = true;
   bool _isImporting = false;
+  int _importProgress = 0;
+  int _importTotal = 0;
   late ImportType _importType;
   
   @override
@@ -193,20 +195,24 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   Widget _buildImportButton() {
     final isVideo = _importType == ImportType.video;
     
+    if (_isImporting) {
+      return Column(
+        children: [
+          LinearProgressIndicator(
+            value: _importTotal > 0 ? _importProgress / _importTotal : null,
+          ),
+          const SizedBox(height: 8),
+          Text('导入中 $_importProgress/$_importTotal'),
+        ],
+      );
+    }
+    
     return FilledButton.icon(
-      onPressed: _isImporting ? null : _importFiles,
-      icon: _isImporting
-          ? const SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : const Icon(Icons.add),
-      label: Text(_isImporting
-          ? '导入中...'
-          : isVideo
-              ? '导入 ${_selectedFiles.length} 个视频'
-              : '导入 ${_selectedFiles.length} 个原文'),
+      onPressed: _importFiles,
+      icon: const Icon(Icons.add),
+      label: Text(isVideo
+          ? '导入 ${_selectedFiles.length} 个视频'
+          : '导入 ${_selectedFiles.length} 个原文'),
     );
   }
   
@@ -266,22 +272,41 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       }
     }
     
-    setState(() => _isImporting = true);
+    setState(() {
+      _isImporting = true;
+      _importTotal = _selectedFiles.length;
+      _importProgress = 0;
+    });
     
     final db = ref.read(databaseProvider);
     final videos = <VideoRecord>[];
+    const batchSize = 10;
     
     try {
-      for (final filePath in _selectedFiles) {
-        final video = VideoRecord(
-          id: const Uuid().v4(),
-          filename: filePath.split(Platform.pathSeparator).last,
-          filePath: filePath,
-          status: VideoStatus.pending,
-          createdAt: DateTime.now(),
-        );
-        await db.insertVideo(video);
-        videos.add(video);
+      // 分批处理文件
+      for (int i = 0; i < _selectedFiles.length; i += batchSize) {
+        final end = (i + batchSize).clamp(0, _selectedFiles.length);
+        final batch = _selectedFiles.sublist(i, end);
+        
+        for (final filePath in batch) {
+          final video = VideoRecord(
+            id: const Uuid().v4(),
+            filename: filePath.split(Platform.pathSeparator).last,
+            filePath: filePath,
+            status: VideoStatus.pending,
+            createdAt: DateTime.now(),
+          );
+          await db.insertVideo(video);
+          videos.add(video);
+        }
+        
+        // 更新进度并让UI有机会刷新
+        setState(() {
+          _importProgress = end;
+        });
+        
+        // 让出控制权给UI线程
+        await Future.delayed(const Duration(milliseconds: 10));
       }
       
       if (shouldProcess && videos.isNotEmpty) {
@@ -333,62 +358,75 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       }
     }
     
-    setState(() => _isImporting = true);
+    setState(() {
+      _isImporting = true;
+      _importTotal = _selectedFiles.length;
+      _importProgress = 0;
+    });
     
     final db = ref.read(databaseProvider);
     final llmService = ref.read(llmServiceProvider);
     int successCount = 0;
+    const batchSize = 5;
     
     try {
-      for (final filePath in _selectedFiles) {
-        try {
-          // 读取原文内容
-          final file = File(filePath);
-          final content = await file.readAsString();
-          final fileName = filePath.split(Platform.pathSeparator).last;
-          
-          // 创建一个虚拟的视频记录（用于关联笔记）
-          final video = VideoRecord(
-            id: const Uuid().v4(),
-            filename: fileName,
-            filePath: filePath,
-            status: VideoStatus.done,
-            createdAt: DateTime.now(),
-          );
-          await db.insertVideo(video);
-          
-          if (shouldGenerate && content.isNotEmpty) {
-            // 生成笔记
-            final note = await llmService.generateNote(
-              transcript: content,
-              videoTitle: fileName.replaceAll(RegExp(r'\.[^.]+$'), ''),
-            );
+      // 分批处理文件
+      for (int i = 0; i < _selectedFiles.length; i += batchSize) {
+        final end = (i + batchSize).clamp(0, _selectedFiles.length);
+        final batch = _selectedFiles.sublist(i, end);
+        
+        for (final filePath in batch) {
+          try {
+            final file = File(filePath);
+            final content = await file.readAsString();
+            final fileName = filePath.split(Platform.pathSeparator).last;
             
-            // 保存笔记
-            await db.insertNote(Note(
+            final video = VideoRecord(
               id: const Uuid().v4(),
-              videoId: video.id,
-              title: note.title,
-              contentMd: note.content,
-              transcriptJson: content,
+              filename: fileName,
+              filePath: filePath,
+              status: VideoStatus.done,
               createdAt: DateTime.now(),
-            ));
-          } else {
-            // 只保存原文作为笔记
-            await db.insertNote(Note(
-              id: const Uuid().v4(),
-              videoId: video.id,
-              title: fileName.replaceAll(RegExp(r'\.[^.]+$'), ''),
-              contentMd: content,
-              transcriptJson: content,
-              createdAt: DateTime.now(),
-            ));
+            );
+            await db.insertVideo(video);
+            
+            if (shouldGenerate && content.isNotEmpty) {
+              final note = await llmService.generateNote(
+                transcript: content,
+                videoTitle: fileName.replaceAll(RegExp(r'\.[^.]+$'), ''),
+              );
+              
+              await db.insertNote(Note(
+                id: const Uuid().v4(),
+                videoId: video.id,
+                title: note.title,
+                contentMd: note.content,
+                transcriptJson: content,
+                createdAt: DateTime.now(),
+              ));
+            } else {
+              await db.insertNote(Note(
+                id: const Uuid().v4(),
+                videoId: video.id,
+                title: fileName.replaceAll(RegExp(r'\.[^.]+$'), ''),
+                contentMd: content,
+                transcriptJson: content,
+                createdAt: DateTime.now(),
+              ));
+            }
+            
+            successCount++;
+          } catch (e) {
+            debugPrint('处理文件失败: $e');
           }
-          
-          successCount++;
-        } catch (e) {
-          debugPrint('处理文件失败: $e');
         }
+        
+        // 更新进度并让UI有机会刷新
+        setState(() {
+          _importProgress = end;
+        });
+        
+        await Future.delayed(const Duration(milliseconds: 10));
       }
       
       ref.read(videoListProvider.notifier).refresh();
