@@ -410,6 +410,48 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get buffering => '缓冲中...';
+
+  @override
+  String get about => '关于';
+
+  @override
+  String get version => '版本';
+
+  @override
+  String get projectHomepage => '项目主页';
+
+  @override
+  String get openSourceLicenses => '开源许可证';
+
+  @override
+  String get errorLogs => '错误日志';
+
+  @override
+  String get noErrorLogs => '暂无错误日志';
+
+  @override
+  String get clearErrorLogs => '清除日志';
+
+  @override
+  String get errorLogsCleared => '错误日志已清除';
+
+  @override
+  String get checkForUpdates => '检查更新';
+
+  @override
+  String get checkingForUpdates => '检查更新中...';
+
+  @override
+  String get latestVersion => '已是最新版本';
+
+  @override
+  String get newVersionAvailable => '发现新版本';
+
+  @override
+  String get downloadUpdate => '下载更新';
+
+  @override
+  String get updateCheckFailed => '检查更新失败';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -818,4 +860,46 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get buffering => '緩衝中...';
+
+  @override
+  String get about => '關於';
+
+  @override
+  String get version => '版本';
+
+  @override
+  String get projectHomepage => '專案主頁';
+
+  @override
+  String get openSourceLicenses => '開源許可證';
+
+  @override
+  String get errorLogs => '錯誤日誌';
+
+  @override
+  String get noErrorLogs => '暫無錯誤日誌';
+
+  @override
+  String get clearErrorLogs => '清除日誌';
+
+  @override
+  String get errorLogsCleared => '錯誤日誌已清除';
+
+  @override
+  String get checkForUpdates => '檢查更新';
+
+  @override
+  String get checkingForUpdates => '檢查更新中...';
+
+  @override
+  String get latestVersion => '已是最新版本';
+
+  @override
+  String get newVersionAvailable => '發現新版本';
+
+  @override
+  String get downloadUpdate => '下載更新';
+
+  @override
+  String get updateCheckFailed => '檢查更新失敗';
 }

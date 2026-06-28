@@ -414,4 +414,46 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get buffering => 'Buffering...';
+
+  @override
+  String get about => 'About';
+
+  @override
+  String get version => 'Version';
+
+  @override
+  String get projectHomepage => 'Project Homepage';
+
+  @override
+  String get openSourceLicenses => 'Open Source Licenses';
+
+  @override
+  String get errorLogs => 'Error Logs';
+
+  @override
+  String get noErrorLogs => 'No error logs';
+
+  @override
+  String get clearErrorLogs => 'Clear Logs';
+
+  @override
+  String get errorLogsCleared => 'Error logs cleared';
+
+  @override
+  String get checkForUpdates => 'Check for Updates';
+
+  @override
+  String get checkingForUpdates => 'Checking for updates...';
+
+  @override
+  String get latestVersion => 'You are using the latest version';
+
+  @override
+  String get newVersionAvailable => 'New version available';
+
+  @override
+  String get downloadUpdate => 'Download Update';
+
+  @override
+  String get updateCheckFailed => 'Failed to check for updates';
 }

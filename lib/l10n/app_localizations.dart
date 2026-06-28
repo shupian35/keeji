@@ -866,6 +866,90 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'缓冲中...'**
   String get buffering;
+
+  /// No description provided for @about.
+  ///
+  /// In zh, this message translates to:
+  /// **'关于'**
+  String get about;
+
+  /// No description provided for @version.
+  ///
+  /// In zh, this message translates to:
+  /// **'版本'**
+  String get version;
+
+  /// No description provided for @projectHomepage.
+  ///
+  /// In zh, this message translates to:
+  /// **'项目主页'**
+  String get projectHomepage;
+
+  /// No description provided for @openSourceLicenses.
+  ///
+  /// In zh, this message translates to:
+  /// **'开源许可证'**
+  String get openSourceLicenses;
+
+  /// No description provided for @errorLogs.
+  ///
+  /// In zh, this message translates to:
+  /// **'错误日志'**
+  String get errorLogs;
+
+  /// No description provided for @noErrorLogs.
+  ///
+  /// In zh, this message translates to:
+  /// **'暂无错误日志'**
+  String get noErrorLogs;
+
+  /// No description provided for @clearErrorLogs.
+  ///
+  /// In zh, this message translates to:
+  /// **'清除日志'**
+  String get clearErrorLogs;
+
+  /// No description provided for @errorLogsCleared.
+  ///
+  /// In zh, this message translates to:
+  /// **'错误日志已清除'**
+  String get errorLogsCleared;
+
+  /// No description provided for @checkForUpdates.
+  ///
+  /// In zh, this message translates to:
+  /// **'检查更新'**
+  String get checkForUpdates;
+
+  /// No description provided for @checkingForUpdates.
+  ///
+  /// In zh, this message translates to:
+  /// **'检查更新中...'**
+  String get checkingForUpdates;
+
+  /// No description provided for @latestVersion.
+  ///
+  /// In zh, this message translates to:
+  /// **'已是最新版本'**
+  String get latestVersion;
+
+  /// No description provided for @newVersionAvailable.
+  ///
+  /// In zh, this message translates to:
+  /// **'发现新版本'**
+  String get newVersionAvailable;
+
+  /// No description provided for @downloadUpdate.
+  ///
+  /// In zh, this message translates to:
+  /// **'下载更新'**
+  String get downloadUpdate;
+
+  /// No description provided for @updateCheckFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'检查更新失败'**
+  String get updateCheckFailed;
 }
 
 class _AppLocalizationsDelegate
