@@ -37,25 +37,12 @@ class _ViewerPageState extends ConsumerState<ViewerPage> {
   Player? _player;
   VideoController? _controller;
   
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initPlayerIfNeeded();
-    });
-  }
-  
-  void _initPlayerIfNeeded() {
-    final videoAsync = ref.read(videoProvider(widget.videoId));
-    videoAsync.whenData((video) {
-      if (video != null && video.sourceType == SourceType.video && mounted) {
-        setState(() {
-          _player = Player();
-          _controller = VideoController(_player!);
-        });
-        _player!.open(Media(video.filePath));
-      }
-    });
+  void _ensurePlayerInitialized(String filePath) {
+    if (_player == null) {
+      _player = Player();
+      _controller = VideoController(_player!);
+      _player!.open(Media(filePath));
+    }
   }
   
   @override
@@ -104,6 +91,9 @@ class _ViewerPageState extends ConsumerState<ViewerPage> {
   }
   
   Widget _buildContent(VideoRecord video, Note? note, AppLocalizations l10n) {
+    if (video.sourceType == SourceType.video) {
+      _ensurePlayerInitialized(video.filePath);
+    }
     return Scaffold(
       appBar: AppBar(
         title: Text(note?.title ?? video.filename),
