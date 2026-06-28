@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:archive/archive.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:file_picker/file_picker.dart';
@@ -14,7 +15,6 @@ class ExportService {
     final fileName = '${_sanitizeFileName(note.title)}.md';
     
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-      // 桌面端：打开文件保存对话框
       final outputPath = await FilePicker.platform.saveFile(
         dialogTitle: '保存笔记',
         fileName: fileName,
@@ -27,7 +27,6 @@ class ExportService {
       await File(outputPath).writeAsString(note.contentMd);
       return outputPath;
     } else {
-      // 移动端：保存到应用目录并分享
       final dir = await getApplicationDocumentsDirectory();
       final file = File(path.join(dir.path, 'exports', fileName));
       
@@ -46,14 +45,12 @@ class ExportService {
   Future<String?> exportTranscriptAsText(Note note) async {
     final fileName = '${_sanitizeFileName(note.title)}_转写.txt';
     
-    // 获取转写文本
     String text = note.contentMd;
     if (note.transcriptJson != null && note.transcriptJson!.isNotEmpty) {
       text = note.transcriptJson!;
     }
     
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-      // 桌面端：打开文件保存对话框
       final outputPath = await FilePicker.platform.saveFile(
         dialogTitle: '保存转写原文',
         fileName: fileName,
@@ -66,7 +63,6 @@ class ExportService {
       await File(outputPath).writeAsString(text);
       return outputPath;
     } else {
-      // 移动端：保存到应用目录并分享
       final dir = await getApplicationDocumentsDirectory();
       final file = File(path.join(dir.path, 'exports', fileName));
       
@@ -79,6 +75,55 @@ class ExportService {
       );
       
       return file.path;
+    }
+  }
+  
+  Future<String?> batchExportNotes(List<Note> notes) async {
+    if (notes.isEmpty) return null;
+    
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      // 桌面端：选择文件夹保存
+      final outputDir = await FilePicker.platform.getDirectoryPath(
+        dialogTitle: '选择导出文件夹',
+      );
+      
+      if (outputDir == null) return null;
+      
+      for (final note in notes) {
+        final fileName = '${_sanitizeFileName(note.title)}.md';
+        final file = File(path.join(outputDir, fileName));
+        await file.writeAsString(note.contentMd);
+      }
+      
+      return outputDir;
+    } else {
+      // 移动端：打包成 ZIP 分享
+      final dir = await getApplicationDocumentsDirectory();
+      final zipDir = Directory(path.join(dir.path, 'exports', 'batch'));
+      await zipDir.create(recursive: true);
+      
+      // 创建 ZIP 文件
+      final archive = Archive();
+      for (final note in notes) {
+        final fileName = '${_sanitizeFileName(note.title)}.md';
+        final content = note.contentMd.codeUnits;
+        archive.addFile(ArchiveFile(fileName, content.length, content));
+      }
+      
+      final zipEncoder = ZipEncoder();
+      final zipData = zipEncoder.encode(archive);
+      
+      if (zipData == null) return null;
+      
+      final zipFile = File(path.join(zipDir.path, 'notes_export.zip'));
+      await zipFile.writeAsBytes(zipData);
+      
+      await Share.shareXFiles(
+        [XFile(zipFile.path)],
+        subject: '笔记导出',
+      );
+      
+      return zipFile.path;
     }
   }
   

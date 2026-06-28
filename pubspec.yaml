@@ -46,6 +46,9 @@ dependencies:
   
   # 文件分享
   share_plus: ^10.1.4
+  
+  # ZIP 压缩
+  archive: ^3.6.1
 
 dev_dependencies:
   flutter_test:
