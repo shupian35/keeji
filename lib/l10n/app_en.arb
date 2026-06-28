@@ -134,5 +134,11 @@
   "errorLogs": "Error Logs",
   "noErrorLogs": "No error logs",
   "clearErrorLogs": "Clear Logs",
-  "errorLogsCleared": "Error logs cleared"
+  "errorLogsCleared": "Error logs cleared",
+  "checkForUpdates": "Check for Updates",
+  "checkingForUpdates": "Checking for updates...",
+  "latestVersion": "You are using the latest version",
+  "newVersionAvailable": "New version available",
+  "downloadUpdate": "Download Update",
+  "updateCheckFailed": "Failed to check for updates"
 }

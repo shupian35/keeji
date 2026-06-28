@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'package:keeji/l10n/app_localizations.dart';
 
 class AboutSettings extends StatefulWidget {
@@ -15,6 +17,7 @@ class AboutSettings extends StatefulWidget {
 class _AboutSettingsState extends State<AboutSettings> {
   String _version = '';
   List<String> _errorLogs = [];
+  bool _isCheckingUpdate = false;
 
   @override
   void initState() {
@@ -58,6 +61,105 @@ class _AboutSettingsState extends State<AboutSettings> {
     }
   }
 
+  Future<void> _checkForUpdates() async {
+    final l10n = AppLocalizations.of(context)!;
+    setState(() => _isCheckingUpdate = true);
+
+    try {
+      final response = await http.get(
+        Uri.parse('https://api.github.com/repos/shupian35/keeji/releases/latest'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final latestVersion = (data['tag_name'] as String).replaceAll('v', '');
+        final currentVersion = _version.split('+').first;
+        final downloadUrl = data['html_url'] as String;
+
+        if (_isNewerVersion(latestVersion, currentVersion)) {
+          _showUpdateDialog(l10n, latestVersion, downloadUrl);
+        } else {
+          _showLatestVersionDialog(l10n);
+        }
+      } else {
+        _showUpdateErrorDialog(l10n);
+      }
+    } catch (e) {
+      _showUpdateErrorDialog(l10n);
+    } finally {
+      if (mounted) {
+        setState(() => _isCheckingUpdate = false);
+      }
+    }
+  }
+
+  bool _isNewerVersion(String latest, String current) {
+    final latestParts = latest.split('.').map(int.parse).toList();
+    final currentParts = current.split('.').map(int.parse).toList();
+
+    for (var i = 0; i < 3; i++) {
+      if (latestParts[i] > currentParts[i]) return true;
+      if (latestParts[i] < currentParts[i]) return false;
+    }
+    return false;
+  }
+
+  void _showUpdateDialog(AppLocalizations l10n, String version, String url) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: Icon(Icons.system_update, color: Theme.of(ctx).colorScheme.primary),
+        title: Text(l10n.newVersionAvailable),
+        content: Text('v$version'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _launchUrl(url);
+            },
+            child: Text(l10n.downloadUpdate),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showLatestVersionDialog(AppLocalizations l10n) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: Icon(Icons.check_circle, color: Theme.of(ctx).colorScheme.primary),
+        title: Text(l10n.latestVersion),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(l10n.close),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showUpdateErrorDialog(AppLocalizations l10n) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: Icon(Icons.error_outline, color: Theme.of(ctx).colorScheme.error),
+        title: Text(l10n.updateCheckFailed),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(l10n.close),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -68,6 +170,14 @@ class _AboutSettingsState extends State<AboutSettings> {
           leading: const Icon(Icons.info_outline),
           title: Text(l10n.version),
           trailing: Text(_version),
+        ),
+        ListTile(
+          leading: const Icon(Icons.system_update),
+          title: Text(l10n.checkForUpdates),
+          trailing: _isCheckingUpdate
+              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+              : const Icon(Icons.arrow_forward_ios),
+          onTap: _isCheckingUpdate ? null : _checkForUpdates,
         ),
         ListTile(
           leading: const Icon(Icons.code),

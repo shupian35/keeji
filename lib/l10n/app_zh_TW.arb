@@ -134,5 +134,11 @@
   "errorLogs": "錯誤日誌",
   "noErrorLogs": "暫無錯誤日誌",
   "clearErrorLogs": "清除日誌",
-  "errorLogsCleared": "錯誤日誌已清除"
+  "errorLogsCleared": "錯誤日誌已清除",
+  "checkForUpdates": "檢查更新",
+  "checkingForUpdates": "檢查更新中...",
+  "latestVersion": "已是最新版本",
+  "newVersionAvailable": "發現新版本",
+  "downloadUpdate": "下載更新",
+  "updateCheckFailed": "檢查更新失敗"
 }
