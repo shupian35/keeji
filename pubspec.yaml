@@ -58,6 +58,29 @@ dev_dependencies:
   # 代码生成
   build_runner: ^2.4.15
   json_serializable: ^6.9.4
+  
+  # 图标生成
+  flutter_launcher_icons: ^0.14.3
+
+flutter_launcher_icons:
+  image_path: "assets/icon/app_icon.png"
+  android: true
+  ios: true
+  windows:
+    generate: true
+    image_path: "assets/icon/app_icon.png"
+  macos:
+    generate: true
+    image_path: "assets/icon/app_icon.png"
+  linux:
+    generate: true
+    image_path: "assets/icon/app_icon.png"
+  remove_alpha_ios: true
+  background_color: "#ffffff"
+  adaptive_icon_background: "#ffffff"
+  adaptive_icon_foreground: "assets/icon/app_icon.png"
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/icon/
