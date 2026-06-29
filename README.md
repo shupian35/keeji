@@ -2,6 +2,16 @@
 
 一个独立的 Flutter 桌面/移动应用，用于将视频课程转换为结构化笔记。
 
+## AltStore 安装（iOS）
+
+通过 AltStore 源一键安装，无需手动签名：
+
+```
+https://shupian35.github.io/altstore-source/apps.json
+```
+
+在 AltStore / SideStore / LiveContainer 中导入上述源 URL 即可。
+
 ## 功能特性
 
 - **视频导入**：支持文件选择器，批量导入
